@@ -1,18 +1,588 @@
 ---
+/**
+ * Portada: vídeo del proceso a pantalla completa → colección destacada con titular
+ * editorial → selección de fotos en composición asimétrica → filosofía → contacto.
+ * Los `data-reveal` son para la capa de motion (paso 6): sin JS todo es visible.
+ */
 import BaseLayout from '../layouts/BaseLayout.astro';
-import PagePlaceholder from '../components/PagePlaceholder.astro';
-import { localizedPath, t, type Locale } from '../i18n/utils';
+import MuxVideo from '../components/media/MuxVideo.astro';
+import SanityImage from '../components/media/SanityImage.astro';
+import RichText from '../components/text/RichText.astro';
+import ContactCta from '../components/contact/ContactCta.astro';
+import { localizedPath, pickLocale, t, type Locale } from '../i18n/utils';
+import { getHomePage, getSiteSettings } from '../lib/sanity/api';
 
 interface Props {
   locale: Locale;
 }
 
 const { locale } = Astro.props;
+const [settings, home] = await Promise.all([getSiteSettings(), getHomePage()]);
+
+const siteName = settings.siteName || t(locale, 'site.name');
+const tagline = pickLocale(settings.tagline, locale);
+
+const featured = home.featuredCollection;
+const featuredTitle = pickLocale(featured?.title, locale);
+const featuredHref = featured
+  ? localizedPath('collectionDetail', locale, { slug: featured.slug })
+  : localizedPath('collections', locale);
+const headline = pickLocale(home.headline, locale) ?? featuredTitle;
+const featuredMeta = [
+  featured && t(locale, featured.line === 'flamenca' ? 'filter.flamenca' : 'filter.pretAPorter'),
+  featured?.season,
+].filter(Boolean);
+const excerpt = pickLocale(featured?.excerpt, locale);
+
+const gallery = (home.gallery ?? []).filter((img) => img?.asset);
+// `sizes` según la posición en la composición (ver CSS de .gallery): móvil, escritorio.
+const gallerySizes = [
+  '(min-width: 48em) 58vw, 100vw',
+  '(min-width: 48em) 33vw, 67vw',
+  '(min-width: 48em) 33vw, 67vw',
+  '(min-width: 48em) 42vw, 84vw',
+  '(min-width: 48em) 42vw, 50vw',
+  '(min-width: 48em) 50vw, 50vw',
+  '(min-width: 48em) 67vw, 100vw',
+];
+const viewCollection = t(locale, 'cta.viewCollection');
+
+const philosophyTitle = pickLocale(home.philosophyTitle, locale);
+const hasPhilosophy = !!(philosophyTitle || pickLocale(home.philosophy, locale)?.length);
+
+const seoTitle = pickLocale(home.seo?.title, locale) ?? pickLocale(settings.defaultSeo?.title, locale);
+const seoDescription =
+  pickLocale(home.seo?.description, locale) ??
+  pickLocale(settings.defaultSeo?.description, locale) ??
+  t(locale, 'site.description');
 ---
 
-<BaseLayout locale={locale}>
-  <PagePlaceholder title={t(locale, 'page.home.title')} intro={t(locale, 'page.home.intro')}>
-    <p><a href={localizedPath('collections', locale)}>{t(locale, 'cta.allCollections')}</a></p>
-    <p><a href={localizedPath('contact', locale)}>{t(locale, 'cta.contact')}</a></p>
-  </PagePlaceholder>
+<BaseLayout locale={locale} title={seoTitle} description={seoDescription} headerVariant="overlay">
+  <section class:list={['hero', { 'hero--no-media': !settings.heroVideo }]} data-header-overlay-until>
+    {
+      settings.heroVideo && (
+        <MuxVideo
+          video={settings.heroVideo}
+          mobile={settings.heroVideoMobile}
+          locale={locale}
+          sizes="100vw"
+          priority
+          fill
+        />
+      )
+    }
+    <div class="hero__scrim" aria-hidden="true"></div>
+
+    <div class="hero__brand">
+      {tagline && <p class="hero__tagline">{tagline}</p>}
+      <h1 class="hero__title">
+        {
+          settings.logo?.asset ? (
+            <>
+              <SanityImage
+                image={settings.logo}
+                locale={locale}
+                sizes="(min-width: 48em) 36rem, 80vw"
+                decorative
+                class="hero__logo"
+              />
+              <span class="visually-hidden">{siteName}</span>
+            </>
+          ) : (
+            siteName
+          )
+        }
+      </h1>
+      <a class="hero__cue" href="#featured">
+        <span>{t(locale, 'home.scrollCue')}</span>
+        <span class="hero__cue-line" aria-hidden="true"></span>
+      </a>
+    </div>
+  </section>
+
+  {
+    featured && (
+      <section class="featured" id="featured" aria-labelledby="featured-title">
+        <p class="featured__eyebrow eyebrow">
+          {t(locale, 'home.featuredEyebrow')}
+          {featuredMeta.length > 0 && (
+            <>
+              <span aria-hidden="true"> — </span>
+              <span class="featured__meta">{featuredMeta.join(' · ')}</span>
+            </>
+          )}
+        </p>
+        <h2 id="featured-title" class="featured__headline" data-reveal>
+          {headline}
+        </h2>
+        {featured.coverImage?.asset && (
+          <a class="featured__media" href={featuredHref} tabindex="-1" aria-hidden="true" data-reveal>
+            <SanityImage
+              image={featured.coverImage}
+              locale={locale}
+              sizes="(min-width: 80rem) 46rem, (min-width: 48em) 55vw, 100vw"
+              aspectRatio={4 / 5}
+              decorative
+            />
+          </a>
+        )}
+        <div class="featured__body" data-reveal>
+          {excerpt && <p class="featured__excerpt">{excerpt}</p>}
+          <a class="text-link" href={featuredHref}>
+            {viewCollection}
+            {featuredTitle && <span class="visually-hidden">: {featuredTitle}</span>}
+            <span class="text-link__arrow" aria-hidden="true">→</span>
+          </a>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    gallery.length > 0 && (
+      <section class="gallery" aria-label={t(locale, 'home.galleryLabel')}>
+        <ul class="gallery__grid" role="list">
+          {gallery.map((img, i) => {
+            const caption = pickLocale(img.caption, locale);
+            return (
+              <li class="gallery__item" data-reveal>
+                <a class="gallery__link" href={featuredHref}>
+                  <SanityImage image={img} locale={locale} sizes={gallerySizes[i] ?? '(min-width: 48em) 67vw, 100vw'} />
+                  <span class="visually-hidden">
+                    — {viewCollection}
+                    {featuredTitle && ` ${featuredTitle}`}
+                  </span>
+                </a>
+                {caption && <p class="gallery__caption">{caption}</p>}
+              </li>
+            );
+          })}
+        </ul>
+        <p class="gallery__more">
+          <a class="text-link" href={localizedPath('collections', locale)}>
+            {t(locale, 'cta.allCollections')}
+            <span class="text-link__arrow" aria-hidden="true">→</span>
+          </a>
+        </p>
+      </section>
+    )
+  }
+
+  {
+    hasPhilosophy && (
+      <section class="philosophy" aria-labelledby={philosophyTitle ? 'philosophy-title' : undefined}>
+        <p class="eyebrow philosophy__eyebrow">{t(locale, 'home.philosophyEyebrow')}</p>
+        {philosophyTitle && (
+          <h2 id="philosophy-title" class="philosophy__title" data-reveal>
+            {philosophyTitle}
+          </h2>
+        )}
+        <div class="philosophy__text" data-reveal>
+          <RichText value={home.philosophy} locale={locale} />
+        </div>
+      </section>
+    )
+  }
+
+  <ContactCta cta={home.cta} locale={locale} />
 </BaseLayout>
+
+<style>
+  /* ---------- Portada a pantalla completa ---------- */
+  .hero {
+    position: relative;
+    display: grid;
+    align-items: end;
+    /* svh: estable en móvil aunque la barra del navegador aparezca o desaparezca. */
+    block-size: 100vh;
+    block-size: 100svh;
+    min-block-size: 28rem;
+    overflow: hidden;
+    background-color: var(--color-ink);
+    color: var(--color-ivory);
+    isolation: isolate;
+  }
+
+  .hero :global(.mux-video) {
+    background-color: var(--color-ink);
+  }
+
+  /* El botón de pausa queda por encima del velo. */
+  .hero :global(.mux-video__toggle) {
+    z-index: 2;
+    inset-block-end: var(--space-l);
+    inset-inline-end: var(--gutter);
+  }
+
+  /* Velo: oscurece lo justo para que el texto claro cumpla AA sobre cualquier fotograma. */
+  .hero__scrim {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to bottom, oklch(0% 0 0 / 0.35), oklch(0% 0 0 / 0) 30%),
+      linear-gradient(to top, oklch(0% 0 0 / 0.6), oklch(0% 0 0 / 0.15) 55%, oklch(0% 0 0 / 0.1));
+    pointer-events: none;
+  }
+
+  .hero--no-media .hero__scrim {
+    display: none;
+  }
+
+  .hero__brand {
+    position: relative;
+    display: grid;
+    gap: var(--space-s);
+    width: min(100% - 2 * var(--gutter), var(--container-max));
+    margin-inline: auto;
+    /* Deja sitio al botón de pausa del vídeo (abajo a la derecha). */
+    padding-block-end: calc(var(--space-l) + 2.75rem);
+    text-shadow: 0 0 2rem oklch(0% 0 0 / 0.25);
+  }
+
+  .hero__tagline {
+    font-size: var(--step--1);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+
+  .hero__title {
+    font-size: clamp(3rem, 0.8rem + 11.5vw, 11rem);
+    line-height: 0.9;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+
+  .hero__title :global(.hero__logo) {
+    inline-size: min(36rem, 80vw);
+    background: none;
+    /* Logo monocromo en blanco sobre el vídeo. [PENDIENTE: revisar con el logo real] */
+    filter: brightness(0) invert(1);
+  }
+
+  .hero__cue {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    justify-self: start;
+    margin-block-start: var(--space-m);
+    padding-block: var(--space-2xs);
+    font-size: var(--step--1);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    text-decoration: none;
+    --color-focus: var(--color-ivory);
+  }
+
+  .hero__cue:hover {
+    color: inherit;
+  }
+
+  .hero__cue-line {
+    position: relative;
+    display: block;
+    inline-size: 3.5rem;
+    block-size: 1px;
+    overflow: hidden;
+    background-color: oklch(100% 0 0 / 0.35);
+  }
+
+  .hero__cue-line::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-color: currentColor;
+    transform-origin: left;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hero__cue-line::after {
+      animation: cue 2.4s var(--ease-in-out) infinite;
+    }
+  }
+
+  @keyframes cue {
+    0% {
+      transform: scaleX(0);
+      transform-origin: left;
+    }
+    50% {
+      transform: scaleX(1);
+      transform-origin: left;
+    }
+    50.01% {
+      transform-origin: right;
+    }
+    100% {
+      transform: scaleX(0);
+      transform-origin: right;
+    }
+  }
+
+  /* ---------- Enlace de texto editorial ---------- */
+  .text-link {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-2xs);
+    padding-block: var(--space-2xs);
+    font-size: var(--step--1);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    text-decoration: underline;
+    text-decoration-color: var(--color-line);
+    text-underline-offset: 0.5em;
+    transition:
+      color var(--duration-fast) var(--ease-out),
+      text-decoration-color var(--duration-base) var(--ease-out);
+  }
+
+  .text-link:hover {
+    color: var(--color-text);
+    text-decoration-color: currentColor;
+  }
+
+  .text-link__arrow {
+    transition: transform var(--duration-base) var(--ease-out);
+  }
+
+  .text-link:is(:hover, :focus-visible) .text-link__arrow {
+    transform: translateX(0.3em);
+  }
+
+  /* ---------- Colección destacada ---------- */
+  .featured {
+    display: grid;
+    gap: var(--space-m);
+    width: min(100% - 2 * var(--gutter), var(--container-wide));
+    margin-inline: auto;
+    padding-block: var(--space-2xl) var(--space-xl);
+  }
+
+  .featured__eyebrow {
+    color: var(--color-text-muted);
+  }
+
+  .featured__headline {
+    font-size: clamp(2.75rem, 1.6rem + 5.2vw, 7.5rem);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+  }
+
+  .featured__media {
+    display: block;
+    /* A sangre en móvil. */
+    margin-inline: calc(-1 * var(--gutter));
+    margin-block: var(--space-s);
+  }
+
+  .featured__body {
+    display: grid;
+    gap: var(--space-s);
+    justify-items: start;
+    max-width: var(--container-text);
+  }
+
+  .featured__excerpt {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: var(--leading-snug);
+  }
+
+  @media (min-width: 48em) {
+    .featured {
+      grid-template-columns: repeat(12, 1fr);
+      grid-template-rows: auto auto 1fr;
+      column-gap: var(--space-m);
+      row-gap: var(--space-l);
+      padding-block: var(--space-3xl) var(--space-2xl);
+    }
+
+    .featured__eyebrow {
+      grid-column: 1 / span 5;
+      grid-row: 1;
+      align-self: end;
+    }
+
+    .featured__headline {
+      grid-column: 1 / span 6;
+      grid-row: 2;
+    }
+
+    .featured__media {
+      grid-column: 7 / -1;
+      grid-row: 1 / span 3;
+      margin: 0;
+    }
+
+    .featured__body {
+      grid-column: 2 / span 4;
+      grid-row: 3;
+      align-self: end;
+    }
+  }
+
+  /* ---------- Selección de fotos: composición de revista ---------- */
+  .gallery {
+    width: min(100% - 2 * var(--gutter), var(--container-wide));
+    margin-inline: auto;
+    padding-block: var(--space-xl) var(--space-2xl);
+  }
+
+  /* Móvil: ritmo de una/dos columnas con desplazamientos (rejilla de 6). */
+  .gallery__grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    column-gap: var(--space-s);
+    row-gap: var(--space-xl);
+    align-items: start;
+  }
+
+  .gallery__item {
+    position: relative;
+    grid-column: 1 / -1;
+  }
+
+  .gallery__item:nth-child(1) {
+    margin-inline: calc(-1 * var(--gutter));
+  }
+  .gallery__item:nth-child(2) {
+    grid-column: 3 / -1;
+  }
+  .gallery__item:nth-child(3) {
+    grid-column: 1 / span 4;
+  }
+  .gallery__item:nth-child(4) {
+    grid-column: 2 / -1;
+  }
+  .gallery__item:nth-child(5) {
+    grid-column: 1 / span 3;
+  }
+  .gallery__item:nth-child(6) {
+    grid-column: 4 / span 3;
+    margin-block-start: var(--space-2xl);
+  }
+
+  .gallery__link {
+    display: block;
+    overflow: hidden;
+  }
+
+  .gallery__link :global(img) {
+    transition: transform var(--duration-slower) var(--ease-out);
+  }
+
+  .gallery__link:hover :global(img) {
+    transform: scale(1.025);
+  }
+
+  .gallery__caption {
+    margin-block-start: var(--space-2xs);
+    font-size: var(--step--1);
+    color: var(--color-text-muted);
+  }
+
+  .gallery__more {
+    display: flex;
+    justify-content: flex-end;
+    margin-block-start: var(--space-xl);
+  }
+
+  @media (min-width: 48em) {
+    .gallery__grid {
+      grid-template-columns: repeat(12, 1fr);
+      column-gap: var(--space-m);
+      row-gap: var(--space-2xl);
+    }
+
+    .gallery__item:nth-child(n) {
+      grid-column: 3 / span 8;
+      margin: 0;
+    }
+
+    .gallery__item:nth-child(1) {
+      grid-column: 1 / span 7;
+    }
+    .gallery__item:nth-child(2) {
+      grid-column: 9 / span 4;
+      margin-block-start: var(--space-3xl);
+    }
+    /* Se monta sobre la primera, con un marco del color del papel. */
+    .gallery__item:nth-child(3) {
+      z-index: 1;
+      grid-column: 2 / span 4;
+      margin-block-start: calc(-1 * var(--space-3xl));
+      padding: var(--space-2xs);
+      margin-inline-start: calc(-1 * var(--space-2xs));
+      background-color: var(--color-bg);
+    }
+    .gallery__item:nth-child(4) {
+      grid-column: 7 / span 5;
+      margin-block-start: var(--space-2xl);
+    }
+    .gallery__item:nth-child(5) {
+      grid-column: 1 / span 5;
+    }
+    .gallery__item:nth-child(6) {
+      grid-column: 7 / span 6;
+      margin-block-start: var(--space-3xl);
+    }
+    .gallery__item:nth-child(7) {
+      grid-column: 3 / span 8;
+    }
+
+    .gallery__more {
+      margin-block-start: var(--space-2xl);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gallery__link:hover :global(img) {
+      transform: none;
+    }
+  }
+
+  /* ---------- Filosofía ---------- */
+  .philosophy {
+    display: grid;
+    gap: var(--space-m);
+    width: min(100% - 2 * var(--gutter), var(--container-narrow));
+    margin-inline: auto;
+    padding-block: var(--space-2xl);
+    border-block-start: var(--border-hairline);
+  }
+
+  .philosophy__eyebrow {
+    color: var(--color-text-muted);
+  }
+
+  .philosophy__title {
+    font-size: var(--step-4);
+    font-style: italic;
+  }
+
+  .philosophy__text {
+    display: grid;
+    gap: var(--space-s);
+    max-width: 34em;
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    line-height: 1.4;
+  }
+
+  @media (min-width: 48em) {
+    .philosophy {
+      grid-template-columns: 1fr 2fr;
+      column-gap: var(--space-l);
+      padding-block: var(--space-3xl) var(--space-2xl);
+    }
+
+    .philosophy__eyebrow {
+      grid-row: 1 / span 2;
+      padding-block-start: 0.6em;
+    }
+
+    .philosophy__title,
+    .philosophy__text {
+      grid-column: 2;
+    }
+  }
+</style>
