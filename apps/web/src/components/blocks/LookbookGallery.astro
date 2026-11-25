@@ -1,0 +1,52 @@
+---
+/**
+ * Lookbook: el editorial final de la colección. Fotos grandes con ritmo de revista
+ * (grande + pequeña desplazada, y su espejo), cada una con su número de look.
+ * Cada foto abre el visor a pantalla completa.
+ * Colocación: ciclo de 4 en escritorio y de 3 en móvil (`blocks.css`, .b-look__item:nth-child).
+ */
+import Figure from './Figure.astro';
+import Heading from './Heading.astro';
+import { gridSizes, hasImage, pad2 } from './layout';
+import { pickLocale } from '../../i18n/utils';
+import type { Locale, LookbookGalleryBlock } from '../../lib/sanity/types';
+
+interface Props {
+  block: LookbookGalleryBlock;
+  locale: Locale;
+  level?: 2 | 3;
+  zoom?: boolean;
+}
+
+const { block, locale, level = 2, zoom = false } = Astro.props;
+const images = (block.images ?? []).filter(hasImage);
+const title = pickLocale(block.title, locale);
+
+// Columnas que ocupa cada posición: escritorio (ciclo 4) y móvil (ciclo 3).
+const DESKTOP = [6, 4, 4, 6];
+const MOBILE = [6, 3, 3];
+---
+
+{
+  images.length > 0 && (
+    <div class="b-look b-wrap">
+      {title && (
+        <Heading level={level} class="b-set__title">
+          {title}
+        </Heading>
+      )}
+      <div class:list={['b-look__grid', 'b-grid', { 'b-look__grid--single': images.length === 1 }]}>
+        {images.map((image, i) => (
+          <Figure
+            image={image}
+            locale={locale}
+            sizes={images.length === 1 ? gridSizes(8, 6) : gridSizes(DESKTOP[i % 4]!, MOBILE[i % 3]!)}
+            zoom={zoom}
+            index={pad2(i + 1)}
+            class="b-look__item"
+          />
+        ))}
+      </div>
+    </div>
+  )
+}

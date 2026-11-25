@@ -1,0 +1,100 @@
+---
+/**
+ * Pinta el cuerpo modular (colecciones y páginas) bloque a bloque.
+ *
+ * - Tipos desconocidos (bloques nuevos del Studio aún sin componente) no pintan nada.
+ * - Jerarquía de encabezados: los capítulos son h2; los títulos de los demás bloques son
+ *   h3 si ya hay un capítulo antes, y h2 si no (p. ej. en una página sin capítulos).
+ * - `lightbox`: las fotos se pueden abrir en el visor a pantalla completa, agrupadas en
+ *   una sola galería por página. El JS del visor solo se incluye si hay alguna foto.
+ */
+import './blocks.css';
+import TextBlock from './TextBlock.astro';
+import FullBleedImage from './FullBleedImage.astro';
+import ImagePair from './ImagePair.astro';
+import SketchGrid from './SketchGrid.astro';
+import Moodboard from './Moodboard.astro';
+import VideoBlock from './VideoBlock.astro';
+import PullQuote from './PullQuote.astro';
+import ChapterHeading from './ChapterHeading.astro';
+import StepsBlock from './StepsBlock.astro';
+import LookbookGallery from './LookbookGallery.astro';
+import CtaBlock from './CtaBlock.astro';
+import Lightbox from '../lightbox/Lightbox.astro';
+import { hasImage } from './layout';
+import type { Locale, ModularBlock } from '../../lib/sanity/types';
+
+interface Props {
+  blocks: ModularBlock[] | null | undefined;
+  locale: Locale;
+  lightbox?: boolean;
+  class?: string;
+}
+
+const { blocks, locale, lightbox = false, class: className } = Astro.props;
+
+const KNOWN = new Set<string>([
+  'textBlock',
+  'fullBleedImage',
+  'imagePair',
+  'sketchGrid',
+  'moodboard',
+  'videoBlock',
+  'pullQuote',
+  'chapterHeading',
+  'stepsBlock',
+  'lookbookGallery',
+  'ctaBlock',
+]);
+
+let afterChapter = false;
+const items = (Array.isArray(blocks) ? blocks : [])
+  .filter((b): b is ModularBlock => !!b && typeof b === 'object' && KNOWN.has((b as { _type?: string })._type ?? ''))
+  .map((block) => {
+    const level: 2 | 3 = afterChapter && block._type !== 'chapterHeading' ? 3 : 2;
+    if (block._type === 'chapterHeading') afterChapter = true;
+    return { block, level };
+  });
+
+const zoomable = (b: ModularBlock): boolean => {
+  switch (b._type) {
+    case 'fullBleedImage':
+      return hasImage(b.image);
+    case 'imagePair':
+      return hasImage(b.left) || hasImage(b.right);
+    case 'sketchGrid':
+    case 'moodboard':
+    case 'lookbookGallery':
+      return !!b.images?.some(hasImage);
+    default:
+      return false;
+  }
+};
+const zoom = lightbox;
+const needsViewer = lightbox && items.some(({ block }) => zoomable(block));
+---
+
+{
+  items.length > 0 && (
+    <div class:list={['blocks', className]}>
+      {items.map(({ block, level }) => (
+        <div class="block" data-block={block._type}>
+          {block._type === 'textBlock' && <TextBlock block={block} locale={locale} />}
+          {block._type === 'chapterHeading' && <ChapterHeading block={block} locale={locale} />}
+          {block._type === 'pullQuote' && <PullQuote block={block} locale={locale} />}
+          {block._type === 'fullBleedImage' && <FullBleedImage block={block} locale={locale} zoom={zoom} />}
+          {block._type === 'imagePair' && <ImagePair block={block} locale={locale} zoom={zoom} />}
+          {block._type === 'sketchGrid' && <SketchGrid block={block} locale={locale} level={level} zoom={zoom} />}
+          {block._type === 'moodboard' && <Moodboard block={block} locale={locale} level={level} zoom={zoom} />}
+          {block._type === 'lookbookGallery' && (
+            <LookbookGallery block={block} locale={locale} level={level} zoom={zoom} />
+          )}
+          {block._type === 'videoBlock' && <VideoBlock block={block} locale={locale} />}
+          {block._type === 'stepsBlock' && <StepsBlock block={block} locale={locale} level={level} />}
+          {block._type === 'ctaBlock' && <CtaBlock block={block} locale={locale} />}
+        </div>
+      ))}
+    </div>
+  )
+}
+{needsViewer && <Lightbox locale={locale} />}

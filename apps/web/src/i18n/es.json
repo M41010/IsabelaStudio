@@ -55,5 +55,16 @@
   "404.title": "Página no encontrada",
   "404.text": "La página que buscas no existe o ha cambiado de sitio.",
   "video.pause": "Pausar vídeo",
-  "video.play": "Reproducir vídeo"
+  "video.play": "Reproducir vídeo",
+  "lightbox.open": "Ampliar imagen",
+  "lightbox.dialog": "Visor de imágenes",
+  "lightbox.close": "Cerrar",
+  "lightbox.zoom": "Acercar o alejar",
+  "lightbox.prev": "Imagen anterior",
+  "lightbox.next": "Imagen siguiente",
+  "lightbox.error": "No se ha podido cargar la imagen.",
+  "lightbox.of": "de",
+  "collection.next": "Siguiente colección",
+  "collection.end": "Fin de la colección",
+  "collection.notFound": "Esta colección no está disponible."
 }

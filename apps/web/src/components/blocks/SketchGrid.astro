@@ -1,0 +1,57 @@
+---
+/**
+ * Bocetos sobre papel: mucho aire alrededor, tamaños variados y alturas desplazadas,
+ * como láminas sueltas sobre una mesa. Proporción natural (cualquier orientación).
+ * Colocación por ciclo de 4 en `blocks.css` (.b-sketch__item:nth-child).
+ */
+import Figure from './Figure.astro';
+import Heading from './Heading.astro';
+import { gridSizes, hasImage } from './layout';
+import { pickLocale } from '../../i18n/utils';
+import type { Locale, SketchGridBlock } from '../../lib/sanity/types';
+
+interface Props {
+  block: SketchGridBlock;
+  locale: Locale;
+  level?: 2 | 3;
+  zoom?: boolean;
+}
+
+const { block, locale, level = 2, zoom = false } = Astro.props;
+const images = (block.images ?? []).filter(hasImage);
+const title = pickLocale(block.title, locale);
+
+// Ancho máximo de cada posición del ciclo: escritorio /12, móvil /6.
+const SPANS: [number, number][] = [
+  [4, 4],
+  [4, 4],
+  [3, 3],
+  [3, 3],
+];
+---
+
+{
+  images.length > 0 && (
+    <div class="b-sketch b-wrap">
+      {title && (
+        <Heading level={level} class="b-set__title">
+          {title}
+        </Heading>
+      )}
+      <div class="b-sketch__grid b-grid">
+        {images.map((image, i) => {
+          const [d, m] = SPANS[i % SPANS.length]!;
+          return (
+            <Figure
+              image={image}
+              locale={locale}
+              sizes={gridSizes(d, m)}
+              zoom={zoom}
+              class="b-sketch__item"
+            />
+          );
+        })}
+      </div>
+    </div>
+  )
+}

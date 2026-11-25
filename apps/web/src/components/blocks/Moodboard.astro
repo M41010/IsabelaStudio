@@ -1,0 +1,93 @@
+---
+/**
+ * Moodboard: collage libre de 3 a 9 imágenes de proporciones mezcladas.
+ *
+ * Las imágenes se reparten en "filas" con plantillas distintas (A: grande + pequeña
+ * desplazada, C: tres piezas escalonadas, B: espejo de A, S: una sola descentrada),
+ * para que el collage no sea una cuadrícula. Cada pieza lleva su columna y su
+ * desplazamiento vertical para escritorio (12 col.) y móvil (6 col.) como variables CSS.
+ * En móvil las filas de dos/tres piezas se convierten en parejas pequeñas y piezas
+ * sueltas sangradas, así el collage sigue leyéndose sin hacerse eterno.
+ */
+import Figure from './Figure.astro';
+import Heading from './Heading.astro';
+import { gridSizes, hasImage } from './layout';
+import { pickLocale } from '../../i18n/utils';
+import type { Locale, MoodboardBlock } from '../../lib/sanity/types';
+
+interface Props {
+  block: MoodboardBlock;
+  locale: Locale;
+  level?: 2 | 3;
+  zoom?: boolean;
+}
+
+const { block, locale, level = 2, zoom = false } = Astro.props;
+const images = (block.images ?? []).filter(hasImage).slice(0, 9);
+const title = pickLocale(block.title, locale);
+
+/** [columna inicial, columnas, desplazamiento vertical] */
+type Slot = [start: number, span: number, offset: string];
+interface Row {
+  d: Slot[];
+  m: Slot[];
+}
+
+const ROWS: Record<'A' | 'B' | 'C' | 'S', Row> = {
+  A: {
+    d: [[1, 6, '0'], [8, 4, 'var(--space-2xl)']],
+    m: [[1, 5, '0'], [3, 4, '0']],
+  },
+  C: {
+    d: [[1, 3, 'var(--space-xl)'], [5, 4, '0'], [10, 3, 'var(--space-3xl)']],
+    m: [[1, 3, '0'], [4, 3, 'var(--space-xl)'], [2, 4, '0']],
+  },
+  B: {
+    d: [[2, 4, 'var(--space-2xl)'], [7, 6, '0']],
+    m: [[1, 3, 'var(--space-l)'], [4, 3, '0']],
+  },
+  S: {
+    d: [[6, 5, '0']],
+    m: [[2, 5, '0']],
+  },
+};
+
+// Reparto en filas: ciclo A → C → B; lo que sobra al final, en una fila que encaje.
+const cycle = ['A', 'C', 'B'] as const;
+const slots: { d: Slot; m: Slot }[] = [];
+let remaining = images.length;
+for (let r = 0; remaining > 0; r++) {
+  let type: keyof typeof ROWS = cycle[r % cycle.length]!;
+  if (ROWS[type].d.length > remaining) type = remaining === 1 ? 'S' : 'B';
+  const row = ROWS[type];
+  row.d.forEach((d, i) => slots.push({ d, m: row.m[i]! }));
+  remaining -= row.d.length;
+}
+---
+
+{
+  images.length > 0 && (
+    <div class="b-mood b-wrap">
+      {title && (
+        <Heading level={level} class="b-set__title">
+          {title}
+        </Heading>
+      )}
+      <div class="b-mood__grid b-grid">
+        {images.map((image, i) => {
+          const { d, m } = slots[i]!;
+          return (
+            <Figure
+              image={image}
+              locale={locale}
+              sizes={gridSizes(d[1], m[1])}
+              zoom={zoom}
+              class="b-mood__item"
+              style={`--d-col:${d[0]} / span ${d[1]};--d-mt:${d[2]};--m-col:${m[0]} / span ${m[1]};--m-mt:${m[2]}`}
+            />
+          );
+        })}
+      </div>
+    </div>
+  )
+}

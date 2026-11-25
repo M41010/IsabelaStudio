@@ -1,0 +1,38 @@
+---
+/**
+ * Capítulo de la historia: número grande ("01"), título (h2) y entradilla.
+ * Es el separador editorial entre partes de la colección.
+ * El número visible es decorativo; el lector de pantalla lo oye dentro del h2.
+ */
+import { pickLocale } from '../../i18n/utils';
+import type { ChapterHeadingBlock, Locale } from '../../lib/sanity/types';
+
+interface Props {
+  block: ChapterHeadingBlock;
+  locale: Locale;
+}
+
+const { block, locale } = Astro.props;
+const number = block.number?.trim() || undefined;
+const title = pickLocale(block.title, locale);
+const intro = pickLocale(block.intro, locale);
+// Ancla enlazable (#capitulo-02 / #chapter-02).
+const id = number ? `${locale === 'es' ? 'capitulo' : 'chapter'}-${number}` : undefined;
+---
+
+{
+  title && (
+    <div class="b-chapter b-wrap" data-reveal>
+      {number && (
+        <p class="b-chapter__num" aria-hidden="true">
+          {number}
+        </p>
+      )}
+      <h2 class="b-chapter__title" id={id}>
+        {number && <span class="visually-hidden">{number}. </span>}
+        {title}
+      </h2>
+      {intro && <p class="b-chapter__intro">{intro}</p>}
+    </div>
+  )
+}
