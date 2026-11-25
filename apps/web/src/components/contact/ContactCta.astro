@@ -1,0 +1,224 @@
+---
+/**
+ * Llamada a contactar: el punto de conversión del sitio.
+ * Email (mailto) e Instagram presentados como un índice editorial a gran tamaño,
+ * no como botones. Lee el email y el Instagram de `siteSettings`.
+ *
+ * - `cta` null/undefined → título y texto por defecto (i18n) y ambos canales.
+ * - `cta` sin título → solo los canales (útil en la página de Contacto, que ya tiene su h1).
+ * - `cta.channels` decide qué canales se muestran (por defecto, ambos).
+ */
+import type { CtaBlock, Locale } from '../../lib/sanity/types';
+import { pickLocale, t } from '../../i18n/utils';
+import { getSiteSettings } from '../../lib/sanity/api';
+
+interface Props {
+  cta: CtaBlock | null | undefined;
+  locale: Locale;
+}
+
+const { cta, locale } = Astro.props;
+const settings = await getSiteSettings();
+
+const title = cta ? pickLocale(cta.title, locale) : t(locale, 'contact.ctaTitle');
+const text = cta ? pickLocale(cta.text, locale) : t(locale, 'contact.ctaText');
+const wanted = cta?.channels?.length ? cta.channels : (['email', 'instagram'] as const);
+
+const email = settings.contactEmail?.trim();
+const handle = settings.instagramHandle?.trim().replace(/^@/, '');
+const instagramUrl = settings.instagramUrl?.trim() || (handle ? `https://www.instagram.com/${handle}/` : undefined);
+
+type Channel = { kind: 'email' | 'instagram'; label: string; value: string; href: string; external: boolean };
+const channels: Channel[] = [];
+for (const kind of wanted) {
+  if (kind === 'email' && email) {
+    channels.push({ kind, label: t(locale, 'contact.byEmail'), value: email, href: `mailto:${email}`, external: false });
+  }
+  if (kind === 'instagram' && instagramUrl) {
+    channels.push({
+      kind,
+      label: t(locale, 'contact.onInstagram'),
+      value: handle ? `@${handle}` : 'Instagram',
+      href: instagramUrl,
+      external: true,
+    });
+  }
+}
+
+const headingId = `cta-${cta?._key ?? 'contact'}`;
+---
+
+{
+  channels.length > 0 && (
+    <section
+      class="contact-cta"
+      aria-labelledby={title ? headingId : undefined}
+      aria-label={title ? undefined : t(locale, 'contact.channelsLabel')}
+    >
+      {(title || text) && (
+        <div class="contact-cta__intro">
+          {title && (
+            <h2 id={headingId} class="contact-cta__title" data-reveal>
+              {title}
+            </h2>
+          )}
+          {text && (
+            <p class="contact-cta__text" data-reveal>
+              {text}
+            </p>
+          )}
+        </div>
+      )}
+
+      <ul class="contact-cta__channels" role="list">
+        {channels.map((c) => (
+          <li data-reveal>
+            <a
+              class="contact-cta__link"
+              href={c.href}
+              data-channel={c.kind}
+              {...(c.external ? { target: '_blank', rel: 'noopener' } : {})}
+            >
+              <span class="contact-cta__label">{c.label}</span>
+              <span class="contact-cta__value">{c.value}</span>
+              <svg class="contact-cta__arrow" viewBox="0 0 24 24" aria-hidden="true">
+                {c.external ? <path d="M7 17 17 7M9 7h8v8" /> : <path d="M4 12h15M13 6l6 6-6 6" />}
+              </svg>
+              {c.external && <span class="visually-hidden">{t(locale, 'contact.newTab')}</span>}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+<style>
+  .contact-cta {
+    display: grid;
+    gap: var(--space-xl);
+    width: min(100% - 2 * var(--gutter), var(--container-wide));
+    margin-inline: auto;
+    padding-block: var(--space-3xl) var(--space-2xl);
+  }
+
+  .contact-cta__intro {
+    display: grid;
+    gap: var(--space-s);
+  }
+
+  .contact-cta__title {
+    max-width: 14ch;
+    font-size: var(--step-5);
+    font-style: italic;
+    line-height: var(--leading-tight);
+  }
+
+  .contact-cta__text {
+    max-width: var(--container-text);
+    color: var(--color-text-muted);
+    font-size: var(--step-0);
+  }
+
+  .contact-cta__channels {
+    border-block-start: var(--border-hairline);
+  }
+
+  .contact-cta__channels li {
+    border-block-end: var(--border-hairline);
+  }
+
+  /* Cada canal es una línea de índice: etiqueta pequeña, valor en serif grande y flecha. */
+  .contact-cta__link {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'label arrow'
+      'value arrow';
+    align-items: center;
+    column-gap: var(--space-s);
+    row-gap: var(--space-3xs);
+    padding-block: var(--space-m);
+    text-decoration: none;
+  }
+
+  .contact-cta__label {
+    grid-area: label;
+    font-size: var(--step--1);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .contact-cta__value {
+    grid-area: value;
+    font-family: var(--font-display);
+    /* Cabe "hola@isabelastudio.com" en una línea a 360px; crece hasta titular en escritorio. */
+    font-size: clamp(1.375rem, 0.85rem + 3.6vw, 4.25rem);
+    line-height: var(--leading-snug);
+    letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-repeat: no-repeat;
+    background-position: 0 92%;
+    background-size: 0% 1px;
+    transition: background-size var(--duration-slow) var(--ease-out);
+    justify-self: start;
+  }
+
+  .contact-cta__arrow {
+    grid-area: arrow;
+    inline-size: clamp(1.5rem, 1rem + 2vw, 2.75rem);
+    block-size: auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+    transition: transform var(--duration-base) var(--ease-out);
+  }
+
+  .contact-cta__link:hover {
+    color: inherit;
+  }
+
+  .contact-cta__link:is(:hover, :focus-visible) .contact-cta__value {
+    background-size: 100% 1px;
+  }
+
+  .contact-cta__link[data-channel='email']:is(:hover, :focus-visible) .contact-cta__arrow {
+    transform: translateX(0.35em);
+  }
+
+  .contact-cta__link[data-channel='instagram']:is(:hover, :focus-visible) .contact-cta__arrow {
+    transform: translate(0.25em, -0.25em);
+  }
+
+  .contact-cta__link:is(:hover, :focus-visible) .contact-cta__arrow {
+    color: var(--color-accent);
+  }
+
+  @media (min-width: 48em) {
+    .contact-cta {
+      grid-template-columns: repeat(12, 1fr);
+      column-gap: var(--space-m);
+    }
+
+    .contact-cta__intro {
+      grid-column: 1 / span 7;
+    }
+
+    .contact-cta__channels {
+      grid-column: 3 / -1;
+    }
+
+    .contact-cta__link {
+      grid-template-columns: 11rem 1fr auto;
+      grid-template-areas: 'label value arrow';
+      align-items: baseline;
+      padding-block: var(--space-l);
+    }
+
+    .contact-cta__arrow {
+      align-self: center;
+    }
+  }
+</style>
