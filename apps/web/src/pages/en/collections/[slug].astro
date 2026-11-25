@@ -1,0 +1,11 @@
+---
+import type { GetStaticPaths, InferGetStaticParamsType } from 'astro';
+import CollectionDetail from '../../../views/CollectionDetail.astro';
+import { getCollectionStaticPaths } from '../../../lib/sanity/paths';
+
+export const getStaticPaths = (() => getCollectionStaticPaths()) satisfies GetStaticPaths;
+
+const { slug } = Astro.params as InferGetStaticParamsType<typeof getStaticPaths>;
+---
+
+<CollectionDetail locale="en" slug={slug} />

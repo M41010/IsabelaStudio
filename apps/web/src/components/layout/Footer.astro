@@ -1,0 +1,100 @@
+---
+import { localizedPath, t, type Locale } from '../../i18n/utils';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+
+// PROVISIONAL: se sustituirán por los datos de `siteSettings` en Sanity.
+const email = t(locale, 'footer.email');
+const instagramHandle = t(locale, 'footer.instagramHandle');
+const instagramUrl = `https://www.instagram.com/${instagramHandle.replace(/^@/, '')}/`;
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="site-footer__inner">
+    <div class="site-footer__contact">
+      <p class="eyebrow">{t(locale, 'footer.contact')}</p>
+      <ul role="list">
+        <li><a href={`mailto:${email}`}>{email}</a></li>
+        <li>
+          <a href={instagramUrl} rel="noopener" target="_blank">
+            {t(locale, 'footer.instagram')} <span class="site-footer__handle">{instagramHandle}</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <nav class="site-footer__legal" aria-label={t(locale, 'a11y.footerNav')}>
+      <ul role="list">
+        <li><a href={localizedPath('legalNotice', locale)}>{t(locale, 'footer.legalNotice')}</a></li>
+        <li><a href={localizedPath('privacy', locale)}>{t(locale, 'footer.privacy')}</a></li>
+        <li><a href={localizedPath('cookies', locale)}>{t(locale, 'footer.cookies')}</a></li>
+      </ul>
+    </nav>
+
+    <p class="site-footer__copy">© {year} Isabela Studio. {t(locale, 'footer.rights')}</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-block-start: var(--space-3xl);
+    border-block-start: var(--border-hairline);
+    font-size: var(--step--1);
+  }
+
+  .site-footer__inner {
+    display: grid;
+    gap: var(--space-l);
+    width: min(100% - 2 * var(--gutter), var(--container-max));
+    margin-inline: auto;
+    padding-block: var(--space-xl) var(--space-l);
+  }
+
+  .site-footer ul {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+  }
+
+  .site-footer a {
+    text-decoration: none;
+  }
+
+  .site-footer a:hover {
+    text-decoration: underline;
+  }
+
+  .site-footer__contact .eyebrow {
+    margin-block-end: var(--space-xs);
+    color: var(--color-text-muted);
+  }
+
+  .site-footer__handle {
+    color: var(--color-text-muted);
+  }
+
+  .site-footer__copy {
+    color: var(--color-text-muted);
+  }
+
+  @media (min-width: 48em) {
+    .site-footer__inner {
+      grid-template-columns: 1fr auto;
+      align-items: end;
+    }
+
+    .site-footer__legal ul {
+      flex-direction: row;
+      gap: var(--space-m);
+    }
+
+    .site-footer__copy {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

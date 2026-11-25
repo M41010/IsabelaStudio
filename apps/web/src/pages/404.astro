@@ -1,0 +1,47 @@
+---
+/**
+ * 404 común. No sabemos el idioma del visitante: mensaje bilingüe, ES por defecto
+ * en <html lang> y la parte inglesa marcada con lang="en".
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { localizedPath, t } from '../i18n/utils';
+---
+
+<BaseLayout locale="es" title={`${t('es', '404.title')} / ${t('en', '404.title')}`} alternates={[]} noindex>
+  <section class="not-found container">
+    <p class="eyebrow" aria-hidden="true">404</p>
+    <div class="not-found__lang">
+      <h1>{t('es', '404.title')}</h1>
+      <p>{t('es', '404.text')}</p>
+      <p><a href={localizedPath('home', 'es')}>{t('es', 'cta.backHome')}</a></p>
+    </div>
+    <div class="not-found__lang" lang="en">
+      <h2>{t('en', '404.title')}</h2>
+      <p>{t('en', '404.text')}</p>
+      <p><a href={localizedPath('home', 'en')} hreflang="en">{t('en', 'cta.backHome')}</a></p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .not-found {
+    display: grid;
+    gap: var(--space-xl);
+    padding-block: var(--space-2xl);
+  }
+
+  .not-found__lang {
+    display: grid;
+    gap: var(--space-s);
+    max-width: var(--container-text);
+  }
+
+  .not-found h2 {
+    font-size: var(--step-6);
+  }
+
+  .not-found__lang + .not-found__lang {
+    padding-block-start: var(--space-xl);
+    border-block-start: var(--border-hairline);
+  }
+</style>

@@ -1,0 +1,18 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PagePlaceholder from '../components/PagePlaceholder.astro';
+import { localizedPath, t, type Locale } from '../i18n/utils';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const title = t(locale, 'page.bespoke.title');
+---
+
+<BaseLayout locale={locale} title={title}>
+  <PagePlaceholder title={title} intro={t(locale, 'page.bespoke.intro')}>
+    <p><a href={localizedPath('contact', locale)}>{t(locale, 'cta.bespoke')}</a></p>
+  </PagePlaceholder>
+</BaseLayout>

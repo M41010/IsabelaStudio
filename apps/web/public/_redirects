@@ -1,0 +1,4 @@
+# Cloudflare Pages. La raíz lleva al idioma por defecto.
+# 302 (temporal): permite, más adelante, elegir idioma según Accept-Language
+# sin que navegadores/buscadores cacheen para siempre la redirección a /es/.
+/  /es/  302
