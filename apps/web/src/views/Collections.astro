@@ -2,8 +2,8 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PagePlaceholder from '../components/PagePlaceholder.astro';
 import { localizedPath, pickLocale, t, type Locale } from '../i18n/utils';
-import { fetchSanity } from '../lib/sanity/client';
-import { collectionsIndexQuery, type CollectionSummary } from '../lib/sanity/queries';
+import { getCollections } from '../lib/sanity/api';
+
 
 interface Props {
   locale: Locale;
@@ -11,7 +11,7 @@ interface Props {
 
 const { locale } = Astro.props;
 const title = t(locale, 'page.collections.title');
-const collections = await fetchSanity<CollectionSummary[]>(collectionsIndexQuery, {}, []);
+const collections = await getCollections();
 
 // Filtro provisional (sin JS todavía): etiquetas listas para el paso 4.
 const filters = [

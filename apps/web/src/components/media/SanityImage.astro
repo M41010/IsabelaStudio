@@ -1,0 +1,122 @@
+---
+/**
+ * Imagen de Sanity responsive: AVIF/WebP automático, srcset, LQIP desenfocado de fondo,
+ * dimensiones explícitas (sin saltos de layout) y encuadre según el hotspot.
+ *
+ * - `sizes` es obligatorio pensarlo en cada uso: describe el ancho real que ocupa la imagen.
+ * - `priority` para la imagen principal de la página (eager + fetchpriority high).
+ * - `aspectRatio` (ancho/alto) recorta en el CDN respetando hotspot y crop.
+ * - Con `fill`, la imagen cubre su contenedor (object-fit: cover) centrada en el hotspot.
+ */
+import type { Locale, SanityImage } from '../../lib/sanity/types';
+import { pickLocale } from '../../i18n/utils';
+import { DEFAULT_WIDTHS, responsiveImage } from '../../lib/sanity/image';
+
+interface Props {
+  image: SanityImage | null | undefined;
+  locale: Locale;
+  sizes: string;
+  aspectRatio?: number;
+  priority?: boolean;
+  fill?: boolean;
+  /** Imagen puramente decorativa: alt vacío. */
+  decorative?: boolean;
+  widths?: readonly number[];
+  class?: string;
+  [key: `data-${string}`]: unknown;
+}
+
+const {
+  image,
+  locale,
+  sizes,
+  aspectRatio,
+  priority = false,
+  fill = false,
+  decorative = false,
+  widths = DEFAULT_WIDTHS,
+  class: className,
+  ...rest
+} = Astro.props;
+
+const asset = image?.asset;
+const dims = asset?.metadata?.dimensions;
+const ratio = aspectRatio ?? dims?.aspectRatio ?? 4 / 5;
+const alt = decorative ? '' : (pickLocale(image?.alt, locale) ?? '');
+
+// Imágenes locales (modo de datos de prueba): sin CDN, sin srcset.
+const isLocal = !!asset?.url?.startsWith('/');
+let src = '';
+let srcset: string | undefined;
+let width = 1600;
+if (asset) {
+  if (isLocal) {
+    src = asset.url;
+    width = dims?.width ?? width;
+  } else {
+    // El CDN no amplía: no pedimos anchos mayores que el original.
+    const max = dims?.width ?? Infinity;
+    const usable = widths.filter((w) => w <= max);
+    const r = responsiveImage(image as never, {
+      widths: usable.length ? usable : [Math.min(widths[0] ?? 800, max)],
+      aspectRatio,
+    });
+    src = r.src;
+    srcset = r.srcset;
+    width = r.width;
+  }
+}
+const height = Math.round(width / ratio);
+
+const hotspot = image?.hotspot;
+const objectPosition = hotspot ? `${(hotspot.x * 100).toFixed(1)}% ${(hotspot.y * 100).toFixed(1)}%` : undefined;
+const lqip = asset?.metadata?.lqip;
+
+const style = [
+  lqip ? `background-image:url(${lqip})` : '',
+  objectPosition ? `object-position:${objectPosition}` : '',
+  !fill ? `aspect-ratio:${ratio}` : '',
+]
+  .filter(Boolean)
+  .join(';');
+---
+
+{
+  asset && (
+    <img
+      class:list={['sanity-img', { 'sanity-img--fill': fill }, className]}
+      src={src}
+      srcset={srcset}
+      sizes={srcset ? sizes : undefined}
+      width={width}
+      height={height}
+      alt={alt}
+      loading={priority ? 'eager' : 'lazy'}
+      decoding={priority ? 'sync' : 'async'}
+      fetchpriority={priority ? 'high' : undefined}
+      style={style}
+      {...rest}
+    />
+  )
+}
+
+<style>
+  .sanity-img {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+    object-fit: cover;
+    background-color: var(--color-surface);
+    background-size: cover;
+    background-position: center;
+  }
+
+  .sanity-img--fill {
+    position: absolute;
+    inset: 0;
+    block-size: 100%;
+  }
+
+  /* El LQIP (desenfocado) queda de fondo hasta que la imagen se pinta encima.
+     Las apariciones animadas llegan con la capa de motion (paso 6). */
+</style>

@@ -1,12 +1,10 @@
 {
   "site.name": "Isabela Studio",
   "site.description": "Isabela Studio, la firma de moda de Teresita Ortiz: prêt-à-porter y trajes de flamenca diseñados, patronados y cosidos a mano.",
-
   "a11y.skipLink": "Saltar al contenido",
   "a11y.homeLink": "Isabela Studio, inicio",
   "a11y.mainNav": "Navegación principal",
   "a11y.footerNav": "Enlaces legales",
-
   "nav.menu": "Menú",
   "nav.close": "Cerrar",
   "nav.home": "Inicio",
@@ -15,12 +13,10 @@
   "nav.bespoke": "A medida",
   "nav.press": "Prensa",
   "nav.contact": "Contacto",
-
   "lang.label": "Idioma",
   "lang.switchTo": "Read in English",
   "lang.current": "Español",
   "lang.other": "EN",
-
   "footer.contact": "Contacto",
   "footer.email": "hola@isabelastudio.com",
   "footer.instagram": "Instagram",
@@ -29,18 +25,15 @@
   "footer.privacy": "Privacidad",
   "footer.cookies": "Cookies",
   "footer.rights": "Todos los derechos reservados.",
-
   "cta.contact": "Escríbeme",
   "cta.bespoke": "Encarga tu pieza",
   "cta.viewCollection": "Ver colección",
   "cta.allCollections": "Todas las colecciones",
   "cta.backHome": "Volver al inicio",
-
   "filter.label": "Filtrar por línea",
   "filter.all": "Todas",
   "filter.pretAPorter": "Prêt-à-porter",
   "filter.flamenca": "Flamenca",
-
   "page.home.title": "Isabela Studio",
   "page.home.intro": "Moda española diseñada, patronada y cosida a mano.",
   "page.collections.title": "Colecciones",
@@ -59,7 +52,8 @@
   "page.privacy.title": "Política de privacidad",
   "page.cookies.title": "Política de cookies",
   "page.legal.placeholder": "Texto legal pendiente.",
-
   "404.title": "Página no encontrada",
-  "404.text": "La página que buscas no existe o ha cambiado de sitio."
+  "404.text": "La página que buscas no existe o ha cambiado de sitio.",
+  "video.pause": "Pausar vídeo",
+  "video.play": "Reproducir vídeo"
 }

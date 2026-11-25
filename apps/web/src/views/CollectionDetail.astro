@@ -2,8 +2,8 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PagePlaceholder from '../components/PagePlaceholder.astro';
 import { localizedPath, pickLocale, t, type Locale } from '../i18n/utils';
-import { fetchSanity } from '../lib/sanity/client';
-import { collectionBySlugQuery, type CollectionSummary } from '../lib/sanity/queries';
+import { getCollection } from '../lib/sanity/api';
+
 
 interface Props {
   locale: Locale;
@@ -11,7 +11,7 @@ interface Props {
 }
 
 const { locale, slug } = Astro.props;
-const collection = await fetchSanity<CollectionSummary>(collectionBySlugQuery, { slug });
+const collection = await getCollection(slug);
 const title = pickLocale(collection?.title, locale) ?? slug;
 const lineLabel =
   collection?.line === 'flamenca'
