@@ -26,6 +26,3 @@ export const schemaTypes = [
   pressItem,
   siteSettings,
 ]
-
-/** Documentos únicos (no se pueden crear más ni borrar). */
-export const SINGLETON_TYPES = ['homePage', 'siteSettings'] as const

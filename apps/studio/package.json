@@ -8,8 +8,8 @@
     "build": "sanity build",
     "deploy": "sanity deploy",
     "typecheck": "tsc --noEmit",
-    "schema:extract": "sanity schema extract --path ./schema.json --enforce-required-fields",
-    "seed": "tsx --env-file-if-exists=.env seed/seed.ts"
+    "schema:extract": "sanity schema extract --path ./schema.json --enforce-required-fields --force",
+    "seed": "tsx seed/seed.ts"
   },
   "dependencies": {
     "@sanity/icons": "^5.4.0",
