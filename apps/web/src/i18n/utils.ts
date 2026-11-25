@@ -5,6 +5,7 @@ import {
   fillPattern,
   localeLang,
   locales,
+  matchRoute,
   routes,
   type Locale,
   type ParamsArg,
@@ -46,6 +47,20 @@ export function alternateUrls<K extends RouteKey>(key: K, ...args: ParamsArg<K>)
     locale,
     lang: localeLang[locale],
     path: localizedPath(key, locale, ...args),
+  }));
+}
+
+/**
+ * Alternativas de idioma deducidas de un pathname (usa el mapa de rutas).
+ * Devuelve `[]` si la URL no corresponde a ninguna ruta conocida (p. ej. 404).
+ */
+export function alternatesForPath(pathname: string): AlternateUrl[] {
+  const match = matchRoute(pathname);
+  if (!match) return [];
+  return locales.map((locale) => ({
+    locale,
+    lang: localeLang[locale],
+    path: fillPattern(routes[match.key][locale], match.params),
   }));
 }
 

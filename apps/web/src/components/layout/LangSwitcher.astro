@@ -1,0 +1,37 @@
+---
+import { localizedPath, t, type AlternateUrl, type Locale } from '../../i18n/utils';
+
+interface Props {
+  locale: Locale;
+  /** Versiones de la página actual en cada idioma. Si falta, enlaza a la portada del otro idioma. */
+  alternates: AlternateUrl[];
+}
+
+const { locale, alternates } = Astro.props;
+const other: Locale = locale === 'es' ? 'en' : 'es';
+const target = alternates.find((a) => a.locale === other);
+const href = target?.path ?? localizedPath('home', other);
+---
+
+<a
+  class="lang-switcher"
+  href={href}
+  hreflang={target?.lang ?? other}
+  lang={other}
+  aria-label={t(locale, 'lang.switchTo')}
+>
+  {t(locale, 'lang.other')}
+</a>
+
+<style>
+  .lang-switcher {
+    font-size: var(--step--1);
+    letter-spacing: var(--tracking-caps);
+    text-decoration: none;
+    padding: var(--space-3xs) var(--space-2xs);
+  }
+
+  .lang-switcher:hover {
+    text-decoration: underline;
+  }
+</style>

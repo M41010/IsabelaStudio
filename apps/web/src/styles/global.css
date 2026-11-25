@@ -82,6 +82,11 @@ a:hover {
   outline: none;
 }
 
+/* Destino del skip link: recibe el foco pero no necesita anillo. */
+main[tabindex='-1']:focus {
+  outline: none;
+}
+
 /* ---------- Utilidades ---------- */
 .container {
   width: min(100% - 2 * var(--gutter), var(--container-wide));
