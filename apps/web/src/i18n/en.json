@@ -55,5 +55,16 @@
   "404.title": "Page not found",
   "404.text": "The page you are looking for does not exist or has moved.",
   "video.pause": "Pause video",
-  "video.play": "Play video"
+  "video.play": "Play video",
+  "lightbox.open": "View larger image",
+  "lightbox.dialog": "Image viewer",
+  "lightbox.close": "Close",
+  "lightbox.zoom": "Zoom in or out",
+  "lightbox.prev": "Previous image",
+  "lightbox.next": "Next image",
+  "lightbox.error": "The image could not be loaded.",
+  "lightbox.of": "of",
+  "collection.next": "Next collection",
+  "collection.end": "End of the collection",
+  "collection.notFound": "This collection is not available."
 }
