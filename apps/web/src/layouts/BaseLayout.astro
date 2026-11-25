@@ -14,13 +14,26 @@ interface Props {
   /** Alternativas de idioma. Por defecto se deducen de la URL con el mapa de rutas. */
   alternates?: AlternateUrl[];
   noindex?: boolean;
+  /**
+   * `overlay`: la cabecera flota transparente (texto claro) sobre una portada a pantalla
+   * completa marcada con `data-header-overlay-until` y pasa a ser la cabecera normal al
+   * dejarla atrás (ver Header.astro).
+   */
+  headerVariant?: 'default' | 'overlay';
 }
 
-const { locale, title, description = t(locale, 'site.description'), noindex = false } = Astro.props;
+const {
+  locale,
+  title,
+  description = t(locale, 'site.description'),
+  noindex = false,
+  headerVariant = 'default',
+} = Astro.props;
 const alternates = Astro.props.alternates ?? alternatesForPath(Astro.url.pathname);
 
 const siteName = t(locale, 'site.name');
-const fullTitle = title && title !== siteName ? `${title} · ${siteName}` : siteName;
+// Si el título ya contiene el nombre del sitio (p. ej. el SEO de la portada), no se repite.
+const fullTitle = title ? (title.includes(siteName) ? title : `${title} · ${siteName}`) : siteName;
 
 const site = Astro.site ?? Astro.url;
 const absolute = (path: string) => new URL(path, site).href;
@@ -51,7 +64,7 @@ const hasPress = await getHasPress();
   </head>
   <body>
     <SkipLink locale={locale} />
-    <Header locale={locale} alternates={alternates} hasPress={hasPress} />
+    <Header locale={locale} alternates={alternates} hasPress={hasPress} variant={headerVariant} />
     <main id="main" tabindex="-1">
       <slot />
     </main>
