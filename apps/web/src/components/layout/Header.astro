@@ -7,9 +7,18 @@ interface Props {
   alternates: AlternateUrl[];
   /** "Prensa" solo aparece si hay entradas publicadas. */
   hasPress?: boolean;
+  /**
+   * `overlay` (portada): cabecera transparente con texto claro sobre el vídeo.
+   * - Sin JS: se coloca en absoluto sobre la portada y se va con el scroll.
+   * - Con JS (script mínimo, solo en esta variante): queda fija y, al dejar atrás el
+   *   elemento `[data-header-overlay-until]`, pasa a la cabecera normal (fondo marfil).
+   * Contraste AA en ambos estados: degradado oscuro propio bajo el texto claro.
+   */
+  variant?: 'default' | 'overlay';
 }
 
-const { locale, alternates, hasPress = false } = Astro.props;
+const { locale, alternates, hasPress = false, variant = 'default' } = Astro.props;
+const overlay = variant === 'overlay';
 
 type NavKey = Extract<RouteKey, 'collections' | 'about' | 'bespoke' | 'press' | 'contact'>;
 const items: NavKey[] = ['collections', 'about', 'bespoke', ...(hasPress ? (['press'] as const) : []), 'contact'];
@@ -18,7 +27,7 @@ const current = matchRoute(Astro.url.pathname)?.key;
 const isCurrent = (key: NavKey) => current === key || (key === 'collections' && current === 'collectionDetail');
 ---
 
-<header class="site-header">
+<header class:list={['site-header', { 'site-header--overlay': overlay }]} data-site-header>
   <div class="site-header__inner">
     <a class="site-header__logo" href={localizedPath('home', locale)} aria-label={t(locale, 'a11y.homeLink')}>
       Isabela Studio
@@ -54,6 +63,24 @@ const isCurrent = (key: NavKey) => current === key || (key === 'collections' && 
     </nav>
   </div>
 </header>
+
+{
+  overlay && (
+    <script is:inline type="module">
+      // `type="module"` lo difiere hasta que la portada (más abajo) ya está en el DOM.
+      (() => {
+        const header = document.querySelector('[data-site-header]');
+        const until = document.querySelector('[data-header-overlay-until]');
+        if (!header || !until || !('IntersectionObserver' in window)) return;
+        header.setAttribute('data-pinned', '');
+        new IntersectionObserver(
+          ([entry]) => header.toggleAttribute('data-solid', !entry.isIntersecting),
+          { rootMargin: `-${header.offsetHeight}px 0px 0px 0px` },
+        ).observe(until);
+      })();
+    </script>
+  )
+}
 
 <style>
   .site-header {
@@ -178,6 +205,93 @@ const isCurrent = (key: NavKey) => current === key || (key === 'collections' && 
       font-size: var(--step--1);
       letter-spacing: var(--tracking-caps);
       text-transform: uppercase;
+    }
+  }
+
+  /* ---------- Variante overlay (portada) ---------- */
+  .site-header--overlay {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    transition:
+      background-color var(--duration-base) var(--ease-out),
+      color var(--duration-base) var(--ease-out),
+      box-shadow var(--duration-base) var(--ease-out);
+  }
+
+  .site-header--overlay[data-pinned] {
+    position: fixed;
+  }
+
+  /* Estado transparente: texto marfil sobre un degradado oscuro propio, que garantiza
+     AA (≥ 4,5:1) aunque el fotograma de debajo sea claro. */
+  .site-header--overlay:not([data-solid]) {
+    --color-focus: var(--color-ivory);
+    color: var(--color-ivory);
+    text-shadow: 0 0 1.5rem oklch(0% 0 0 / 0.35);
+  }
+
+  .site-header--overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    block-size: calc(var(--header-height) * 1.75);
+    background: linear-gradient(
+      to bottom,
+      oklch(0% 0 0 / 0.6),
+      oklch(0% 0 0 / 0.45) 40%,
+      oklch(0% 0 0 / 0)
+    );
+    pointer-events: none;
+    transition: opacity var(--duration-base) var(--ease-out);
+  }
+
+  .site-header--overlay .site-header__inner {
+    position: relative;
+  }
+
+  .site-header--overlay:not([data-solid]) :is(.site-header__logo, .site-header__toggle):hover {
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  /* La portada ya muestra el logo en grande: el de la cabecera aparece al pasar al estado normal. */
+  .site-header--overlay:not([data-solid]) .site-header__logo {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .site-header--overlay .site-header__logo {
+    transition:
+      opacity var(--duration-base) var(--ease-out),
+      visibility var(--duration-base) allow-discrete;
+  }
+
+  /* Estado normal tras la portada. */
+  .site-header--overlay[data-solid] {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    box-shadow: 0 1px 0 var(--color-line);
+  }
+
+  .site-header--overlay[data-solid]::before {
+    opacity: 0;
+  }
+
+  /* El panel del menú móvil es marfil: sin la sombra de texto heredada. */
+  .site-header--overlay .site-menu {
+    text-shadow: none;
+  }
+
+  @media (min-width: 60em) {
+    .site-header--overlay:not([data-solid]) .site-menu {
+      text-shadow: inherit;
+      color: inherit;
+    }
+
+    .site-header--overlay:not([data-solid]) .site-menu a:hover {
+      color: inherit;
+      text-decoration: underline;
     }
   }
 </style>

@@ -66,5 +66,20 @@
   "lightbox.of": "de",
   "collection.next": "Siguiente colección",
   "collection.end": "Fin de la colección",
-  "collection.notFound": "Esta colección no está disponible."
+  "collection.notFound": "Esta colección no está disponible.",
+  "home.scrollCue": "Descubrir",
+  "home.featuredEyebrow": "Colección destacada",
+  "home.galleryLabel": "Imágenes de la colección",
+  "home.philosophyEyebrow": "Filosofía",
+  "collections.countOne": "{n} colección",
+  "collections.countOther": "{n} colecciones",
+  "collections.lineLabel": "Línea",
+  "contact.headline": "Hablemos",
+  "contact.note": "Encargos a medida, prêt-à-porter y trajes de flamenca.",
+  "contact.ctaTitle": "¿Hablamos de tu pieza?",
+  "contact.ctaText": "Cada pieza empieza con una conversación.",
+  "contact.channelsLabel": "Formas de contacto",
+  "contact.byEmail": "Por email",
+  "contact.onInstagram": "En Instagram",
+  "contact.newTab": "(se abre en una pestaña nueva)"
 }

@@ -66,5 +66,20 @@
   "lightbox.of": "of",
   "collection.next": "Next collection",
   "collection.end": "End of the collection",
-  "collection.notFound": "This collection is not available."
+  "collection.notFound": "This collection is not available.",
+  "home.scrollCue": "Discover",
+  "home.featuredEyebrow": "Featured collection",
+  "home.galleryLabel": "Images from the collection",
+  "home.philosophyEyebrow": "Philosophy",
+  "collections.countOne": "{n} collection",
+  "collections.countOther": "{n} collections",
+  "collections.lineLabel": "Line",
+  "contact.headline": "Let’s talk",
+  "contact.note": "Bespoke commissions, ready-to-wear and flamenca dresses.",
+  "contact.ctaTitle": "Shall we talk about your piece?",
+  "contact.ctaText": "Every piece begins with a conversation.",
+  "contact.channelsLabel": "Ways to get in touch",
+  "contact.byEmail": "By email",
+  "contact.onInstagram": "On Instagram",
+  "contact.newTab": "(opens in a new tab)"
 }

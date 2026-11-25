@@ -251,6 +251,9 @@ importers:
       astro-portabletext:
         specifier: ^1.0.1
         version: 1.0.1(astro@7.4.13(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+      photoswipe:
+        specifier: ^5.4.4
+        version: 5.4.4
     devDependencies:
       '@astrojs/check':
         specifier: ^0.9.12
@@ -5037,6 +5040,10 @@ packages:
 
   performance-now@2.1.0:
     resolution: {integrity: sha512-7EAHlyLHI56VEIdK57uwHdHKIaAGbnXPiw0yWbarQZOKaKpvUIgW0jWRVLiatnM+XXlSwsanIBH/hzGMJulMow==}
+
+  photoswipe@5.4.4:
+    resolution: {integrity: sha512-WNFHoKrkZNnvFFhbHL93WDkW3ifwVOXSW3w1UuZZelSmgXpIGiZSNlZJq37rR8YejqME2rHs9EhH9ZvlvFH2NA==}
+    engines: {node: '>= 0.12.0'}
 
   piccolore@0.1.3:
     resolution: {integrity: sha512-o8bTeDWjE086iwKrROaDf31K0qC/BENdm15/uH9usSC/uZjJOKb2YGiVHfLY4GhwsERiPI1jmwI2XrA7ACOxVw==}
@@ -11575,6 +11582,8 @@ snapshots:
       through2: 2.0.5
 
   performance-now@2.1.0: {}
+
+  photoswipe@5.4.4: {}
 
   piccolore@0.1.3: {}
 
