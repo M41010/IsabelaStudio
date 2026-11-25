@@ -19,3 +19,9 @@ Fase 1 con fecha de entrega 2026-12-05.
 - `pnpm install`
 - `pnpm dev:web` / `pnpm dev:studio`
 - `pnpm build:web`
+
+## Datos y medios (web)
+- Las vistas obtienen datos SOLO con `apps/web/src/lib/sanity/api.ts`. Sin `PUBLIC_SANITY_PROJECT_ID` se usan los datos de prueba de `fixtures.ts` (imágenes en `public/fixtures`, generadas con `node scripts/make-fixtures.mjs`).
+- Tipos de datos proyectados en `lib/sanity/types.ts`; proyecciones GROQ en `lib/sanity/queries.ts`. Si cambias un esquema del Studio, actualiza ambos y los fixtures.
+- Imágenes: `components/media/SanityImage.astro` (piensa siempre el `sizes`). Vídeo: `components/media/MuxVideo.astro` (MP4 estáticos de Mux, carga diferida, botón de pausa). Texto enriquecido: `components/text/RichText.astro`.
+- Iconos del Studio: importar por icono (`@sanity/icons/Cog`), no desde la raíz del paquete.

@@ -1,0 +1,16 @@
+---
+/** Llamada a contactar dentro de una narrativa: envoltorio fino sobre ContactCta. */
+import ContactCta from '../contact/ContactCta.astro';
+import type { CtaBlock, Locale } from '../../lib/sanity/types';
+
+interface Props {
+  block: CtaBlock;
+  locale: Locale;
+}
+
+const { block, locale } = Astro.props;
+---
+
+<div class="b-cta" data-reveal>
+  <ContactCta cta={block} locale={locale} />
+</div>

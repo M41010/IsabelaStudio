@@ -1,7 +1,12 @@
 ---
+/**
+ * Contacto: sin formulario. Titular editorial, una frase de introducción y los dos
+ * canales (email e Instagram) con el mismo lenguaje visual que la llamada de la portada.
+ */
 import BaseLayout from '../layouts/BaseLayout.astro';
-import PagePlaceholder from '../components/PagePlaceholder.astro';
+import ContactCta from '../components/contact/ContactCta.astro';
 import { t, type Locale } from '../i18n/utils';
+import type { CtaBlock } from '../lib/sanity/types';
 
 interface Props {
   locale: Locale;
@@ -9,20 +14,82 @@ interface Props {
 
 const { locale } = Astro.props;
 const title = t(locale, 'page.contact.title');
-// PROVISIONAL: vendrán de `siteSettings` en Sanity.
-const email = t(locale, 'footer.email');
-const instagramHandle = t(locale, 'footer.instagramHandle');
+const intro = t(locale, 'page.contact.intro');
+
+// Sin título ni texto: ContactCta muestra solo los canales (esta página ya tiene su h1).
+const channelsOnly: CtaBlock = { _type: 'ctaBlock', _key: 'contact-page', channels: ['email', 'instagram'] };
 ---
 
-<BaseLayout locale={locale} title={title}>
-  <PagePlaceholder title={title} intro={t(locale, 'page.contact.intro')}>
-    <ul role="list">
-      <li><a href={`mailto:${email}`}>{email}</a></li>
-      <li>
-        <a href={`https://www.instagram.com/${instagramHandle.replace(/^@/, '')}/`} rel="noopener" target="_blank">
-          {instagramHandle}
-        </a>
-      </li>
-    </ul>
-  </PagePlaceholder>
+<BaseLayout locale={locale} title={title} description={intro}>
+  <div class="contact-page">
+    <header class="contact-page__header">
+      <p class="eyebrow contact-page__eyebrow">{title}</p>
+      <h1 class="contact-page__title" data-reveal>{t(locale, 'contact.headline')}</h1>
+      <div class="contact-page__intro" data-reveal>
+        <p>{intro}</p>
+        <p class="contact-page__note">{t(locale, 'contact.note')}</p>
+      </div>
+    </header>
+
+    <ContactCta cta={channelsOnly} locale={locale} />
+  </div>
 </BaseLayout>
+
+<style>
+  .contact-page {
+    padding-block: var(--space-xl) 0;
+  }
+
+  .contact-page__header {
+    display: grid;
+    gap: var(--space-m);
+    width: min(100% - 2 * var(--gutter), var(--container-wide));
+    margin-inline: auto;
+  }
+
+  .contact-page__eyebrow {
+    color: var(--color-text-muted);
+  }
+
+  .contact-page__title {
+    font-size: clamp(3.5rem, 1.4rem + 9vw, 11rem);
+    font-style: italic;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+  }
+
+  .contact-page__intro {
+    display: grid;
+    gap: var(--space-2xs);
+    max-width: 30ch;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: var(--leading-snug);
+  }
+
+  .contact-page__note {
+    color: var(--color-text-muted);
+  }
+
+  /* La cabecera ya marca el ritmo: menos aire sobre los canales. */
+  .contact-page :global(.contact-cta) {
+    padding-block-start: var(--space-xl);
+  }
+
+  @media (min-width: 48em) {
+    .contact-page__header {
+      grid-template-columns: repeat(12, 1fr);
+      column-gap: var(--space-m);
+      align-items: end;
+    }
+
+    .contact-page__eyebrow,
+    .contact-page__title {
+      grid-column: 1 / -1;
+    }
+
+    .contact-page__intro {
+      grid-column: 3 / span 6;
+    }
+  }
+</style>

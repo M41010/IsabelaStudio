@@ -1,9 +1,18 @@
 ---
+/**
+ * Índice de colecciones: cada colección como un reportaje de revista (portada grande,
+ * título, temporada y entradilla), alternando la composición.
+ *
+ * Filtro por línea con mejora progresiva:
+ * - Radios + `:has()` en CSS: filtra sin JavaScript (navegadores sin `:has()` ven todas).
+ * - Un script mínimo solo anuncia el número de resultados (`aria-live`).
+ * - Si solo una línea tiene colecciones, el filtro no se muestra.
+ */
 import BaseLayout from '../layouts/BaseLayout.astro';
-import PagePlaceholder from '../components/PagePlaceholder.astro';
-import { localizedPath, pickLocale, t, type Locale } from '../i18n/utils';
-import { fetchSanity } from '../lib/sanity/client';
-import { collectionsIndexQuery, type CollectionSummary } from '../lib/sanity/queries';
+import SanityImage from '../components/media/SanityImage.astro';
+import { localizedPath, pickLocale, t, type Locale, type UiKey } from '../i18n/utils';
+import { getCollections } from '../lib/sanity/api';
+import type { CollectionLine } from '../lib/sanity/types';
 
 interface Props {
   locale: Locale;
@@ -11,49 +20,404 @@ interface Props {
 
 const { locale } = Astro.props;
 const title = t(locale, 'page.collections.title');
-const collections = await fetchSanity<CollectionSummary[]>(collectionsIndexQuery, {}, []);
+const intro = t(locale, 'page.collections.intro');
+const collections = await getCollections();
 
-// Filtro provisional (sin JS todavía): etiquetas listas para el paso 4.
+const lineLabel: Record<CollectionLine, string> = {
+  'pret-a-porter': t(locale, 'filter.pretAPorter'),
+  flamenca: t(locale, 'filter.flamenca'),
+};
+
+const countText = (n: number) =>
+  t(locale, (n === 1 ? 'collections.countOne' : 'collections.countOther') as UiKey).replace('{n}', String(n));
+
+const lines = (['pret-a-porter', 'flamenca'] as const).filter((l) => collections.some((c) => c.line === l));
+const showFilter = lines.length > 1;
 const filters = [
-  { value: 'all', label: t(locale, 'filter.all') },
-  { value: 'pret-a-porter', label: t(locale, 'filter.pretAPorter') },
-  { value: 'flamenca', label: t(locale, 'filter.flamenca') },
-] as const;
+  { value: 'all', label: t(locale, 'filter.all'), count: collections.length },
+  ...lines.map((l) => ({ value: l, label: lineLabel[l], count: collections.filter((c) => c.line === l).length })),
+];
 ---
 
-<BaseLayout locale={locale} title={title}>
-  <PagePlaceholder title={title} intro={t(locale, 'page.collections.intro')}>
-    <nav aria-label={t(locale, 'filter.label')}>
-      <ul role="list" class="filters">
-        {filters.map((f) => <li data-filter={f.value}>{f.label}</li>)}
-      </ul>
-    </nav>
+<BaseLayout locale={locale} title={title} description={intro}>
+  <div class="collections-index">
+    <header class="index-header">
+      <h1 class="index-header__title" data-reveal>{title}</h1>
+      <p class="index-header__intro" data-reveal>{intro}</p>
+    </header>
+
+    {
+      showFilter && (
+        <div class="filter">
+          <fieldset class="filter__group">
+            <legend class="visually-hidden">{t(locale, 'filter.label')}</legend>
+            {filters.map((f, i) => (
+              <label class="filter__option">
+                <input
+                  class="visually-hidden"
+                  type="radio"
+                  name="linea"
+                  value={f.value}
+                  checked={i === 0}
+                  data-count={countText(f.count)}
+                />
+                <span class="filter__label">{f.label}</span>
+                <span class="filter__count" aria-hidden="true">
+                  {f.count}
+                </span>
+              </label>
+            ))}
+          </fieldset>
+          <p class="visually-hidden" aria-live="polite" data-filter-status>
+            {countText(collections.length)}
+          </p>
+        </div>
+      )
+    }
 
     {
       collections.length > 0 ? (
-        <ul role="list">
-          {collections.map((c) => (
-            <li data-line={c.line}>
-              <a href={localizedPath('collectionDetail', locale, { slug: c.slug })}>
-                {pickLocale(c.title, locale) ?? c.slug}
-              </a>
-            </li>
-          ))}
-        </ul>
+        <ol class="features" role="list">
+          {collections.map((c) => {
+            const name = pickLocale(c.title, locale) ?? c.slug;
+            const href = localizedPath('collectionDetail', locale, { slug: c.slug });
+            const excerpt = pickLocale(c.excerpt, locale);
+            return (
+              <li class="feature" data-line={c.line}>
+                <article class="feature__inner" aria-labelledby={`feature-${c.slug}`}>
+                  {c.coverImage?.asset && (
+                    <a class="feature__media" href={href} tabindex="-1" aria-hidden="true" data-reveal>
+                      <SanityImage
+                        image={c.coverImage}
+                        locale={locale}
+                        sizes="(min-width: 80rem) 48rem, (min-width: 48em) 60vw, 100vw"
+                        aspectRatio={4 / 5}
+                        decorative
+                      />
+                    </a>
+                  )}
+                  <div class="feature__text" data-reveal>
+                    <p class="feature__meta eyebrow">
+                      <span class="visually-hidden">{t(locale, 'collections.lineLabel')}: </span>
+                      {lineLabel[c.line]}
+                      {c.season && (
+                        <>
+                          <span aria-hidden="true"> · </span>
+                          {c.season}
+                        </>
+                      )}
+                    </p>
+                    <h2 class="feature__title" id={`feature-${c.slug}`}>
+                      <a href={href}>{name}</a>
+                    </h2>
+                    {excerpt && <p class="feature__excerpt">{excerpt}</p>}
+                    <a class="feature__cta" href={href} tabindex="-1" aria-hidden="true">
+                      {t(locale, 'cta.viewCollection')}
+                      <span class="feature__arrow">→</span>
+                    </a>
+                  </div>
+                </article>
+              </li>
+            );
+          })}
+        </ol>
       ) : (
-        <p>{t(locale, 'page.collections.empty')}</p>
+        <p class="index-empty">{t(locale, 'page.collections.empty')}</p>
       )
     }
-  </PagePlaceholder>
+  </div>
 </BaseLayout>
 
+<script>
+  // Solo anuncia el recuento; el filtrado lo hace el CSS.
+  const status = document.querySelector<HTMLElement>('[data-filter-status]');
+  document.querySelectorAll<HTMLInputElement>('input[name="linea"]').forEach((input) => {
+    input.addEventListener('change', () => {
+      if (input.checked && status) status.textContent = input.dataset.count ?? '';
+    });
+    if (input.checked && status) status.textContent = input.dataset.count ?? '';
+  });
+</script>
+
 <style>
-  .filters {
+  .collections-index {
+    width: min(100% - 2 * var(--gutter), var(--container-wide));
+    margin-inline: auto;
+    padding-block: var(--space-xl) var(--space-2xl);
+  }
+
+  /* ---------- Cabecera ---------- */
+  .index-header {
+    display: grid;
+    gap: var(--space-s);
+    padding-block-end: var(--space-xl);
+  }
+
+  .index-header__title {
+    font-size: clamp(3rem, 1.4rem + 7vw, 9rem);
+    line-height: 0.9;
+    letter-spacing: -0.025em;
+  }
+
+  .index-header__intro {
+    max-width: 30ch;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: var(--leading-snug);
+    color: var(--color-text-muted);
+  }
+
+  @media (min-width: 48em) {
+    .index-header {
+      grid-template-columns: repeat(12, 1fr);
+      column-gap: var(--space-m);
+      align-items: end;
+    }
+
+    .index-header__title {
+      grid-column: 1 / span 8;
+    }
+
+    .index-header__intro {
+      grid-column: 9 / -1;
+      padding-block-end: 0.6em;
+    }
+  }
+
+  /* ---------- Filtro ---------- */
+  .filter {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-s);
+    align-items: baseline;
+    gap: var(--space-xs) var(--space-m);
+    padding-block: var(--space-s);
+    margin-block-end: var(--space-xl);
+    border-block: var(--border-hairline);
+  }
+
+  .filter__group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3xs) var(--space-m);
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-inline-size: 0;
+  }
+
+  .filter__option {
+    display: inline-flex;
+    gap: 0.35em;
+    /* Objetivo táctil cómodo. */
+    min-block-size: 2.75rem;
+    align-items: center;
+    cursor: pointer;
     font-size: var(--step--1);
     letter-spacing: var(--tracking-caps);
     text-transform: uppercase;
+    color: var(--color-text-muted);
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  .filter__label {
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.5em;
+    transition: text-decoration-color var(--duration-base) var(--ease-out);
+  }
+
+  .filter__count {
+    font-size: 0.8em;
+    align-self: flex-start;
+    margin-block-start: 0.7em;
+  }
+
+  .filter__option:hover,
+  .filter__option:has(input:checked) {
+    color: var(--color-text);
+  }
+
+  .filter__option:has(input:checked) .filter__label {
+    text-decoration-color: currentColor;
+  }
+
+  .filter__option:has(input:focus-visible) {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 3px;
+  }
+
+  /* ---------- Reportajes ---------- */
+  .features {
+    display: grid;
+    gap: var(--space-2xl);
+    counter-reset: feature;
+  }
+
+  /* Filtrado sin JS: los elementos ocultos no cuentan para el contador ni para la alternancia. */
+  .collections-index:has(input[value='flamenca']:checked) .feature:not([data-line='flamenca']),
+  .collections-index:has(input[value='pret-a-porter']:checked) .feature:not([data-line='pret-a-porter']) {
+    display: none;
+  }
+
+  .feature {
+    counter-increment: feature;
+  }
+
+  .feature__inner {
+    display: grid;
+    gap: var(--space-m);
+  }
+
+  .feature__media {
+    display: block;
+    overflow: hidden;
+    margin-inline: calc(-1 * var(--gutter));
+  }
+
+  .feature__media :global(img) {
+    transition: transform var(--duration-slower) var(--ease-out);
+  }
+
+  .feature__inner:has(a:hover) .feature__media :global(img) {
+    transform: scale(1.025);
+  }
+
+  .feature__text {
+    display: grid;
+    gap: var(--space-xs);
+    justify-items: start;
+  }
+
+  /* Número de reportaje (01, 02…): se recalcula al filtrar. */
+  .feature__text::before {
+    content: counter(feature, decimal-leading-zero);
+    content: counter(feature, decimal-leading-zero) / '';
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-style: italic;
+    color: var(--color-text-muted);
+  }
+
+  .feature__meta {
+    color: var(--color-text-muted);
+  }
+
+  .feature__title {
+    font-size: clamp(2.5rem, 1.5rem + 4.5vw, 6.4rem);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+  }
+
+  .feature__title a {
+    text-decoration: none;
+  }
+
+  .feature__title a:hover {
+    color: inherit;
+  }
+
+  /* Toda la ficha responde al pasar por el título o la imagen. */
+  .feature__inner:has(a:hover) .feature__title a {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.12em;
+  }
+
+  .feature__excerpt {
+    max-width: 32ch;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: var(--leading-snug);
+  }
+
+  .feature__cta {
+    display: inline-flex;
+    gap: var(--space-2xs);
+    margin-block-start: var(--space-xs);
+    font-size: var(--step--1);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    text-decoration: underline;
+    text-decoration-color: var(--color-line);
+    text-underline-offset: 0.5em;
+  }
+
+  .feature__arrow {
+    transition: transform var(--duration-base) var(--ease-out);
+  }
+
+  .feature__inner:has(a:hover) .feature__arrow {
+    transform: translateX(0.3em);
+  }
+
+  .feature__inner:has(a:hover) .feature__cta {
+    color: var(--color-text);
+    text-decoration-color: currentColor;
+  }
+
+  /*
+   * Reportajes en espejo: los pares entre los VISIBLES (con el filtro aplicado se usa
+   * :nth-child(even of …) para que la alternancia no se rompa).
+   */
+
+  /* Móvil: la imagen se desplaza para romper la columna. */
+  .collections-index:not(:has(.filter input:checked:not([value='all']))) .feature:nth-child(even) .feature__media,
+  .collections-index:has(input[value='flamenca']:checked) .feature:nth-child(even of [data-line='flamenca']) .feature__media,
+  .collections-index:has(input[value='pret-a-porter']:checked) .feature:nth-child(even of [data-line='pret-a-porter']) .feature__media {
+    margin-inline: 15% calc(-1 * var(--gutter));
+  }
+
+  @media (min-width: 48em) {
+    .features {
+      gap: var(--space-3xl);
+    }
+
+    .feature__inner {
+      grid-template-columns: repeat(12, 1fr);
+      column-gap: var(--space-m);
+      align-items: end;
+    }
+
+    .feature__media {
+      grid-column: 1 / span 7;
+      grid-row: 1;
+      margin: 0;
+    }
+
+    .feature__text {
+      grid-column: 9 / -1;
+      grid-row: 1;
+      padding-block-end: var(--space-l);
+    }
+
+    .collections-index:not(:has(.filter input:checked:not([value='all']))) .feature:nth-child(even) .feature__media,
+    .collections-index:has(input[value='flamenca']:checked) .feature:nth-child(even of [data-line='flamenca']) .feature__media,
+    .collections-index:has(input[value='pret-a-porter']:checked) .feature:nth-child(even of [data-line='pret-a-porter']) .feature__media {
+      grid-column: 6 / -1;
+      margin: 0;
+    }
+
+    .collections-index:not(:has(.filter input:checked:not([value='all']))) .feature:nth-child(even) .feature__text,
+    .collections-index:has(input[value='flamenca']:checked) .feature:nth-child(even of [data-line='flamenca']) .feature__text,
+    .collections-index:has(input[value='pret-a-porter']:checked) .feature:nth-child(even of [data-line='pret-a-porter']) .feature__text {
+      grid-column: 1 / span 4;
+      align-self: start;
+      padding-block: var(--space-2xl) 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .feature__inner:has(a:hover) .feature__media :global(img) {
+      transform: none;
+    }
+  }
+
+  .index-empty {
+    padding-block: var(--space-2xl);
+    font-family: var(--font-display);
+    font-size: var(--step-3);
+    font-style: italic;
+    color: var(--color-text-muted);
   }
 </style>

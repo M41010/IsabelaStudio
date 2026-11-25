@@ -1,8 +1,7 @@
-import { fetchSanity } from './client';
-import { collectionSlugsQuery } from './queries';
+import { getCollectionSlugs } from './api';
 
-/** Rutas estáticas del detalle de colección (slug común a ES y EN). `[]` sin Sanity. */
+/** Rutas estáticas del detalle de colección (slug común a ES y EN). */
 export async function getCollectionStaticPaths() {
-  const slugs = await fetchSanity<string[]>(collectionSlugsQuery, {}, []);
+  const slugs = await getCollectionSlugs();
   return slugs.map((slug) => ({ params: { slug } }));
 }

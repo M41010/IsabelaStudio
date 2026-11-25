@@ -1,0 +1,19 @@
+---
+/**
+ * Texto enriquecido de Sanity (Portable Text) en el idioma activo, con respaldo a ES.
+ * Los estilos tipográficos los pone el bloque que lo contiene.
+ */
+import { PortableText } from 'astro-portabletext';
+import type { Locale, LocaleRichText } from '../../lib/sanity/types';
+import { pickLocale } from '../../i18n/utils';
+
+interface Props {
+  value: LocaleRichText | null | undefined;
+  locale: Locale;
+}
+
+const { value, locale } = Astro.props;
+const blocks = pickLocale(value, locale);
+---
+
+{blocks && blocks.length > 0 && <PortableText value={blocks} />}

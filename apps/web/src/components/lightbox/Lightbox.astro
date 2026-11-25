@@ -1,0 +1,37 @@
+---
+/**
+ * Visor a pantalla completa (PhotoSwipe v5) para las fotos con `data-lightbox` de la página.
+ *
+ * Solo se incluye en páginas que tienen fotos ampliables. Aquí se carga únicamente un
+ * cargador mínimo; PhotoSwipe (JS + CSS) se descarga con import() dinámico en la primera
+ * intención de uso (puntero encima, toque o foco en una foto) y se abre al hacer clic.
+ * Sin JS, cada foto es un enlace normal a su versión grande.
+ *
+ * Textos del visor localizados: se pasan en los data-* de este elemento.
+ */
+import { t, type Locale } from '../../i18n/utils';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+---
+
+<div
+  hidden
+  id="lightbox-l10n"
+  data-dialog={t(locale, 'lightbox.dialog')}
+  data-close={t(locale, 'lightbox.close')}
+  data-zoom={t(locale, 'lightbox.zoom')}
+  data-prev={t(locale, 'lightbox.prev')}
+  data-next={t(locale, 'lightbox.next')}
+  data-error={t(locale, 'lightbox.error')}
+  data-of={t(locale, 'lightbox.of')}
+>
+</div>
+
+<script>
+  import { initLightbox } from '../../scripts/lightbox';
+  initLightbox();
+</script>

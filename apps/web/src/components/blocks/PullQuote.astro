@@ -1,0 +1,29 @@
+---
+/** Cita destacada en serif de display muy grande. Las comillas las pone el CSS según el idioma. */
+import { pickLocale } from '../../i18n/utils';
+import type { Locale, PullQuoteBlock } from '../../lib/sanity/types';
+
+interface Props {
+  block: PullQuoteBlock;
+  locale: Locale;
+}
+
+const { block, locale } = Astro.props;
+// Por si la autora escribe comillas a pesar de la indicación del Studio.
+const quote = pickLocale(block.quote, locale)
+  ?.trim()
+  .replace(/^["«“'‘]+|["»”'’]+$/g, '')
+  .trim();
+const author = block.author?.trim();
+---
+
+{
+  quote && (
+    <figure class="b-quote b-wrap b-grid" data-reveal>
+      <blockquote class="b-quote__text">
+        <p>{quote}</p>
+      </blockquote>
+      {author && <figcaption class="b-quote__author">{author}</figcaption>}
+    </figure>
+  )
+}

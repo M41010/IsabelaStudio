@@ -1,0 +1,165 @@
+---
+/**
+ * Vídeo de Mux reproducido con <video> nativo a partir de los MP4 estáticos
+ * (sin reproductor HLS ni JS pesado). Silenciado, en bucle y `playsinline`.
+ *
+ * - No descarga nada hasta que es visible (`scripts/lazy-video.ts`), y se pausa fuera de pantalla.
+ * - Poster como <img> responsive debajo del vídeo: es lo que se pinta primero (LCP) en la portada.
+ * - En móvil (< 48em) usa una versión más ligera: `mobile` si existe, si no un MP4 de menor resolución.
+ * - Botón de pausa siempre accesible (WCAG 2.2.2). Con `prefers-reduced-motion` no se reproduce solo.
+ * - Sin `playbackId` (vídeo aún procesándose o datos de prueba) solo se muestra el poster.
+ */
+import type { Locale, SanityVideo } from '../../lib/sanity/types';
+import { pickLocale, t } from '../../i18n/utils';
+import SanityImage from './SanityImage.astro';
+
+interface Props {
+  video: SanityVideo | null | undefined;
+  mobile?: SanityVideo | null;
+  locale: Locale;
+  sizes: string;
+  /** Vídeo principal de la página: poster con prioridad alta. */
+  priority?: boolean;
+  /** Cubre el contenedor (p. ej. portada a pantalla completa). */
+  fill?: boolean;
+  class?: string;
+}
+
+const { video, mobile, locale, sizes, priority = false, fill = false, class: className } = Astro.props;
+
+const MUX = 'https://stream.mux.com';
+const pick = (v: SanityVideo | null | undefined, prefer: string[]) => {
+  if (!v?.playbackId) return undefined;
+  const ready = v.renditions ?? [];
+  const name = prefer.find((p) => ready.includes(p)) ?? ready[0];
+  return name ? `${MUX}/${v.playbackId}/${name}` : undefined;
+};
+
+const desktopSrc = pick(video, ['1080p.mp4', '720p.mp4', '480p.mp4']);
+const mobileSrc = pick(mobile?.playbackId ? mobile : video, ['720p.mp4', '480p.mp4', '1080p.mp4']);
+const hasVideo = !!desktopSrc;
+
+const ratio = (() => {
+  const [w, h] = (video?.aspectRatio ?? '16:9').split(':').map(Number);
+  return w && h ? w / h : 16 / 9;
+})();
+
+const muxThumb = video?.playbackId ? `https://image.mux.com/${video.playbackId}/thumbnail.webp?time=1` : undefined;
+const description = pickLocale(video?.description, locale);
+---
+
+<div
+  class:list={['mux-video', { 'mux-video--fill': fill }, className]}
+  style={fill ? undefined : `aspect-ratio:${ratio}`}
+  data-lazy-video={hasVideo ? '' : undefined}
+>
+  {
+    video?.poster ? (
+      <SanityImage image={video.poster} locale={locale} sizes={sizes} priority={priority} fill decorative />
+    ) : (
+      muxThumb && (
+        <img
+          class="mux-video__thumb"
+          src={`${muxThumb}&width=1280`}
+          srcset={[640, 1280, 1920].map((w) => `${muxThumb}&width=${w} ${w}w`).join(', ')}
+          sizes={sizes}
+          alt=""
+          width="1280"
+          height={Math.round(1280 / ratio)}
+          loading={priority ? 'eager' : 'lazy'}
+          fetchpriority={priority ? 'high' : undefined}
+        />
+      )
+    )
+  }
+  {
+    hasVideo && (
+      <video muted loop playsinline preload="none" aria-label={description} disablepictureinpicture>
+        {mobileSrc && mobileSrc !== desktopSrc && (
+          <source data-src={mobileSrc} type="video/mp4" media="(max-width: 47.99em)" />
+        )}
+        <source data-src={desktopSrc} type="video/mp4" />
+      </video>
+    )
+  }
+  {
+    hasVideo && (
+      <button
+        class="mux-video__toggle"
+        type="button"
+        hidden
+        aria-pressed="false"
+        data-label-pause={t(locale, 'video.pause')}
+        data-label-play={t(locale, 'video.play')}
+      >
+        <span class="visually-hidden">{t(locale, 'video.pause')}</span>
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="currentColor">
+          <rect class="icon-pause" x="3" y="2" width="3.5" height="12" />
+          <rect class="icon-pause" x="9.5" y="2" width="3.5" height="12" />
+          <path class="icon-play" d="M4 2l10 6-10 6z" />
+        </svg>
+      </button>
+    )
+  }
+</div>
+
+<script>
+  import { initLazyVideos } from '../../scripts/lazy-video';
+  initLazyVideos();
+</script>
+
+<style>
+  .mux-video {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--color-surface);
+  }
+
+  .mux-video--fill {
+    position: absolute;
+    inset: 0;
+  }
+
+  .mux-video video,
+  .mux-video__thumb {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+
+  .mux-video video {
+    opacity: 0;
+    transition: opacity var(--duration-slow) var(--ease-out);
+  }
+  .mux-video.is-playing video {
+    opacity: 1;
+  }
+
+  .mux-video__toggle {
+    position: absolute;
+    inset-block-end: var(--space-s);
+    inset-inline-end: var(--space-s);
+    display: grid;
+    place-items: center;
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+    border: 1px solid oklch(100% 0 0 / 0.5);
+    border-radius: 50%;
+    background: oklch(0% 0 0 / 0.25);
+    color: #fff;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+  }
+
+  .mux-video__toggle .icon-play {
+    display: none;
+  }
+  .mux-video__toggle[aria-pressed='true'] .icon-play {
+    display: inline;
+  }
+  .mux-video__toggle[aria-pressed='true'] .icon-pause {
+    display: none;
+  }
+</style>

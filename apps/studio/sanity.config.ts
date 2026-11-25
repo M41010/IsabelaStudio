@@ -36,6 +36,8 @@ export default defineConfig({
       tool: {title: 'Vídeos'},
       acceptedMimeTypes: ['video/*'],
       max_resolution_tier: '1080p',
+      // MP4 estáticos: la web los reproduce con <video> nativo, sin cargar un reproductor HLS.
+      static_renditions: ['1080p', '720p', '480p'],
     }),
     esESLocale(),
     // La consola de consultas GROQ solo se carga en desarrollo.

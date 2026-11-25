@@ -1,0 +1,689 @@
+/*
+ * Bloques modulares (cuerpo de colecciones y páginas).
+ *
+ * Mobile first. Cada bloque es un contenedor (`.block`, container query `block`) que
+ * ocupa todo el ancho; dentro, `.b-wrap` fija el ancho máximo y los márgenes y `.b-grid`
+ * da una retícula de 6 columnas (móvil) / 12 columnas (≥ 48rem).
+ * Las composiciones son asimétricas a propósito: piezas desplazadas, tamaños distintos
+ * y aire generoso, como una revista impresa.
+ *
+ * Global (no scoped) para que los estilos alcancen a los componentes hijos (Figure,
+ * SanityImage); todas las clases llevan prefijo `b-` o `fig`.
+ * `data-reveal` / `data-parallax` solo marcan elementos para la capa de motion (paso 6):
+ * sin JS todo es visible.
+ */
+
+/* ---------- Ritmo vertical entre bloques ---------- */
+.blocks {
+  padding-block-end: var(--space-2xl);
+}
+
+.block {
+  container: block / inline-size;
+}
+
+.block + .block {
+  margin-block-start: var(--space-2xl);
+}
+
+/* Los capítulos abren con más aire; lo que les sigue queda pegado a ellos. */
+.block + .block[data-block='chapterHeading'],
+.block + .block[data-block='ctaBlock'] {
+  margin-block-start: var(--space-3xl);
+}
+
+.block[data-block='chapterHeading'] + .block {
+  margin-block-start: var(--space-xl);
+}
+
+/* ---------- Retícula ---------- */
+.b-wrap {
+  inline-size: min(100% - 2 * var(--gutter), var(--container-max));
+  margin-inline: auto;
+}
+
+.b-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  column-gap: var(--gutter);
+  align-items: start;
+}
+
+:where(.b-grid) > * {
+  grid-column: 1 / -1;
+  min-inline-size: 0;
+}
+
+@container block (min-width: 48rem) {
+  .b-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Figura (foto + pie) ---------- */
+.fig {
+  margin: 0;
+  min-inline-size: 0;
+}
+
+.fig__frame {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background-color: var(--color-surface);
+}
+
+.fig__frame--zoom {
+  color: inherit;
+  text-decoration: none;
+  cursor: zoom-in;
+}
+
+.fig__frame--zoom:focus-visible {
+  outline-offset: 4px;
+}
+
+.fig__frame--zoom .sanity-img {
+  transition: transform var(--duration-slower) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .fig__frame--zoom:hover .sanity-img {
+    transform: scale(1.025);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fig__frame--zoom:hover .sanity-img {
+    transform: none;
+  }
+}
+
+.fig__caption {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  max-inline-size: 42ch;
+  margin-block-start: var(--space-2xs);
+  font-size: var(--step--1);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+}
+
+.fig__index {
+  flex: none;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: var(--tracking-caps);
+  color: var(--color-text);
+}
+
+/* Título de los bloques de imágenes (moodboard, bocetos, lookbook). */
+.b-set__title {
+  max-inline-size: 18ch;
+  margin-block-end: var(--space-xl);
+  font-size: var(--step-3);
+  font-style: italic;
+  line-height: var(--leading-snug);
+  text-wrap: balance;
+}
+
+@container block (min-width: 48rem) {
+  .b-set__title {
+    /* Sangrado una columna, alineado con las piezas desplazadas. */
+    margin-inline-start: calc((100% + var(--gutter)) / 12);
+  }
+}
+
+/* ---------- Texto ---------- */
+.b-text__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-block-end: var(--space-s);
+  color: var(--color-text-muted);
+}
+
+.b-text__eyebrow::before {
+  content: '';
+  flex: none;
+  inline-size: 2.5rem;
+  border-block-start: 1px solid currentColor;
+}
+
+.b-text__body {
+  max-inline-size: var(--container-text);
+}
+
+.b-text__body > * + * {
+  margin-block-start: 1em;
+}
+
+.b-text__body p {
+  text-wrap: pretty;
+}
+
+/* Primer párrafo como entradilla, en la serif de display. */
+.b-text:not(.b-text--twoColumns) .b-text__body > p:first-child {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  line-height: var(--leading-snug);
+}
+
+.b-text--offsetLeft > * {
+  grid-column: 1 / span 5;
+}
+
+.b-text--offsetRight > * {
+  grid-column: 2 / -1;
+}
+
+@container block (min-width: 48rem) {
+  .b-text--narrow > * {
+    grid-column: 3 / span 8;
+  }
+
+  .b-text--offsetLeft > * {
+    grid-column: 2 / span 7;
+  }
+
+  .b-text--offsetRight > * {
+    grid-column: 6 / span 7;
+  }
+
+  .b-text--twoColumns > * {
+    grid-column: 2 / span 10;
+  }
+}
+
+@container block (min-width: 64rem) {
+  .b-text--narrow > * {
+    grid-column: 4 / span 6;
+  }
+
+  .b-text--offsetLeft > * {
+    grid-column: 2 / span 6;
+  }
+
+  /* La entradilla (eyebrow) sale al margen izquierdo, como una nota de revista. */
+  .b-text--offsetRight > .b-text__body {
+    grid-column: 7 / span 5;
+    grid-row: 1;
+  }
+
+  .b-text--offsetRight > .b-text__eyebrow {
+    grid-column: 3 / span 3;
+    grid-row: 1;
+    margin-block: 0.75em 0;
+  }
+
+  .b-text--twoColumns .b-text__body {
+    max-inline-size: none;
+    columns: 2;
+    column-gap: calc(2 * var(--gutter));
+  }
+
+  .b-text--twoColumns .b-text__body > * {
+    break-inside: avoid;
+  }
+
+  .b-text--twoColumns .b-text__body > :first-child {
+    margin-block-start: 0;
+  }
+}
+
+/* ---------- Capítulo ---------- */
+.b-chapter {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  column-gap: var(--gutter);
+  padding-block-start: var(--space-s);
+  border-block-start: var(--border-hairline);
+}
+
+.b-chapter > * {
+  grid-column: 1 / -1;
+}
+
+.b-chapter__num {
+  margin-block-start: var(--space-m);
+  font-family: var(--font-display);
+  font-size: clamp(5.5rem, 34cqi, 16rem);
+  font-weight: 300;
+  font-variant-numeric: lining-nums;
+  line-height: 0.78;
+  letter-spacing: -0.04em;
+  color: var(--color-accent);
+}
+
+.b-chapter__title {
+  margin-block-start: var(--space-m);
+  font-size: var(--step-5);
+  text-wrap: balance;
+}
+
+.b-chapter__intro {
+  grid-column: 2 / -1;
+  max-inline-size: 32ch;
+  margin-block-start: var(--space-s);
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-style: italic;
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+  text-wrap: pretty;
+}
+
+@container block (min-width: 48rem) {
+  .b-chapter {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: end;
+  }
+
+  .b-chapter__num {
+    grid-column: 1 / span 5;
+    grid-row: 1;
+    font-size: clamp(8rem, 20cqi, 16rem);
+  }
+
+  .b-chapter__title {
+    grid-column: 6 / -1;
+    grid-row: 1;
+    margin-block-start: 0;
+  }
+
+  .b-chapter__intro {
+    grid-column: 8 / span 5;
+    grid-row: 2;
+    margin-block-start: var(--space-m);
+  }
+}
+
+/* ---------- Cita ---------- */
+.b-quote {
+  margin-block: 0;
+  quotes: '“' '”' '‘' '’';
+}
+
+.b-quote:lang(es) {
+  quotes: '«' '»' '“' '”';
+}
+
+.b-quote__text {
+  margin: 0;
+}
+
+.b-quote__text p {
+  font-family: var(--font-display);
+  font-size: var(--step-4);
+  font-style: italic;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.b-quote__text p::before {
+  content: open-quote;
+}
+
+.b-quote__text p::after {
+  content: close-quote;
+}
+
+.b-quote__author {
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-block-start: var(--space-m);
+  font-size: var(--step--1);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.b-quote__author::before {
+  content: '';
+  flex: none;
+  inline-size: 2.5rem;
+  border-block-start: 1px solid currentColor;
+}
+
+@container block (min-width: 48rem) {
+  .b-quote__text {
+    grid-column: 2 / span 10;
+  }
+
+  .b-quote__text p {
+    font-size: var(--step-5);
+  }
+
+  /* Comilla de apertura colgada en el margen: el texto queda alineado a la columna. */
+  .b-quote__text p::before {
+    position: absolute;
+    transform: translateX(-100%);
+  }
+
+  .b-quote__author {
+    grid-column: 7 / span 6;
+  }
+}
+
+/* ---------- Imagen a sangre ---------- */
+.b-bleed__frame {
+  aspect-ratio: 4 / 5;
+}
+
+.b-bleed .fig__caption {
+  inline-size: min(100% - 2 * var(--gutter), var(--container-max));
+  max-inline-size: none;
+  margin-inline: auto;
+}
+
+@container block (min-width: 48rem) {
+  .b-bleed__frame {
+    aspect-ratio: var(--b-ratio, 1.5);
+    max-block-size: 100svh;
+  }
+
+  .b-bleed .fig__caption {
+    justify-content: flex-end;
+  }
+}
+
+/* ---------- Pareja de fotos ---------- */
+.b-pair {
+  row-gap: var(--space-l);
+}
+
+.b-pair--leftTall .b-pair__right {
+  grid-column: 3 / -1;
+}
+
+.b-pair--rightTall .b-pair__left {
+  grid-column: 1 / span 4;
+}
+
+.b-pair--rightTall .b-pair__right {
+  grid-column: 2 / -1;
+}
+
+.b-pair--single > .b-pair__item {
+  grid-column: 1 / -1;
+}
+
+@container block (min-width: 48rem) {
+  .b-pair > .b-pair__item {
+    grid-row: 1;
+  }
+
+  /* Protagonista a la izquierda; la secundaria baja hacia el pie de la grande. */
+  .b-pair--leftTall .b-pair__left {
+    grid-column: 1 / span 7;
+  }
+
+  .b-pair--leftTall .b-pair__right {
+    grid-column: 9 / span 4;
+    align-self: end;
+    margin-block-end: var(--space-2xl);
+  }
+
+  /* Espejo: la secundaria arriba a la izquierda, desplazada hacia abajo. */
+  .b-pair--rightTall .b-pair__left {
+    grid-column: 1 / span 4;
+    margin-block-start: var(--space-3xl);
+  }
+
+  .b-pair--rightTall .b-pair__right {
+    grid-column: 6 / span 7;
+  }
+
+  .b-pair--single > .b-pair__item {
+    grid-column: 3 / span 8;
+  }
+}
+
+/* ---------- Bocetos ---------- */
+.b-sketch__grid {
+  row-gap: var(--space-xl);
+}
+
+/* Papel escaneado: el blanco del papel se funde con el marfil de la página. */
+.b-sketch .fig__frame {
+  background-color: transparent;
+}
+
+.b-sketch .sanity-img {
+  mix-blend-mode: multiply;
+}
+
+.b-sketch__item:nth-child(4n + 1) {
+  grid-column: 1 / span 4;
+}
+
+.b-sketch__item:nth-child(4n + 2) {
+  grid-column: 3 / span 4;
+}
+
+.b-sketch__item:nth-child(4n + 3) {
+  grid-column: 1 / span 3;
+}
+
+.b-sketch__item:nth-child(4n + 4) {
+  grid-column: 4 / span 3;
+  margin-block-start: var(--space-xl);
+}
+
+@container block (min-width: 48rem) {
+  .b-sketch__grid {
+    row-gap: var(--space-2xl);
+  }
+
+  .b-sketch__item:nth-child(4n + 1) {
+    grid-column: 2 / span 4;
+  }
+
+  .b-sketch__item:nth-child(4n + 2) {
+    grid-column: 8 / span 4;
+    margin-block-start: var(--space-3xl);
+  }
+
+  .b-sketch__item:nth-child(4n + 3) {
+    grid-column: 4 / span 3;
+  }
+
+  .b-sketch__item:nth-child(4n + 4) {
+    grid-column: 9 / span 3;
+    margin-block-start: var(--space-2xl);
+  }
+}
+
+/* ---------- Moodboard (posiciones calculadas en Moodboard.astro) ---------- */
+.b-mood__grid {
+  row-gap: var(--space-m);
+}
+
+.b-mood__item {
+  grid-column: var(--m-col, 1 / -1);
+  margin-block-start: var(--m-mt, 0);
+}
+
+@container block (min-width: 48rem) {
+  .b-mood__grid {
+    row-gap: var(--space-l);
+  }
+
+  .b-mood__item {
+    grid-column: var(--d-col, 1 / -1);
+    margin-block-start: var(--d-mt, 0);
+  }
+}
+
+/* ---------- Lookbook ---------- */
+.b-look__grid {
+  row-gap: var(--space-xl);
+}
+
+/* Móvil, ciclo de 3: una foto a todo el ancho y después una pareja escalonada. */
+.b-look__item:nth-child(3n + 2) {
+  grid-column: 1 / span 3;
+}
+
+.b-look__item:nth-child(3n + 3) {
+  grid-column: 4 / span 3;
+  margin-block-start: var(--space-2xl);
+}
+
+/* Si la última queda sola en su fila, a todo el ancho. */
+.b-look__item:nth-child(3n + 2):last-child {
+  grid-column: 1 / -1;
+}
+
+@container block (min-width: 48rem) {
+  .b-look__grid {
+    row-gap: var(--space-2xl);
+  }
+
+  .b-look__grid > .b-look__item {
+    margin-block-start: 0;
+  }
+
+  /* Escritorio, ciclo de 4: grande + pequeña desplazada, y su espejo. */
+  .b-look__grid > .b-look__item:nth-child(4n + 1) {
+    grid-column: 1 / span 6;
+  }
+
+  .b-look__grid > .b-look__item:nth-child(4n + 2) {
+    grid-column: 8 / span 4;
+    margin-block-start: var(--space-3xl);
+  }
+
+  .b-look__grid > .b-look__item:nth-child(4n + 3) {
+    grid-column: 2 / span 4;
+    margin-block-start: var(--space-2xl);
+  }
+
+  .b-look__grid > .b-look__item:nth-child(4n + 4) {
+    grid-column: 7 / span 6;
+  }
+
+  .b-look__grid--single > .b-look__item:only-child {
+    grid-column: 3 / span 8;
+  }
+}
+
+/* ---------- Vídeo ---------- */
+.b-video {
+  margin: 0;
+}
+
+.b-video--full .mux-video {
+  max-block-size: 100svh;
+}
+
+.b-video--full .b-video__caption {
+  inline-size: min(100% - 2 * var(--gutter), var(--container-max));
+  max-inline-size: none;
+  margin-inline: auto;
+}
+
+.b-video--vertical > * {
+  grid-column: 2 / span 4;
+}
+
+@container block (min-width: 48rem) {
+  .b-video--inset > * {
+    grid-column: 3 / span 8;
+  }
+
+  .b-video--inset.b-video--vertical > * {
+    grid-column: 5 / span 4;
+  }
+
+  .b-video--full .b-video__caption {
+    justify-content: flex-end;
+  }
+}
+
+/* ---------- Pasos ---------- */
+.b-steps {
+  row-gap: var(--space-xl);
+}
+
+.b-steps__variant {
+  margin-block-end: var(--space-s);
+  color: var(--color-text-muted);
+}
+
+.b-steps__title {
+  font-size: var(--step-4);
+  text-wrap: balance;
+}
+
+.b-steps__intro {
+  max-inline-size: 40ch;
+  margin-block-start: var(--space-s);
+  color: var(--color-text-muted);
+}
+
+.b-steps__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-block-start: var(--border-hairline);
+}
+
+.b-steps__item {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: var(--space-s);
+  padding-block: var(--space-m);
+  border-block-end: var(--border-hairline);
+}
+
+.b-steps__num {
+  font-family: var(--font-display);
+  font-size: var(--step-3);
+  font-variant-numeric: lining-nums tabular-nums;
+  line-height: 1;
+  color: var(--color-accent);
+}
+
+.b-steps__step-title {
+  font-size: var(--step-1);
+  line-height: var(--leading-snug);
+}
+
+.b-steps__text {
+  max-inline-size: 48ch;
+  margin-block-start: var(--space-2xs);
+  color: var(--color-text-muted);
+}
+
+@container block (min-width: 48rem) {
+  .b-steps__head {
+    grid-column: 1 / span 4;
+    position: sticky;
+    inset-block-start: var(--space-xl);
+  }
+
+  .b-steps__list {
+    grid-column: 6 / -1;
+  }
+
+  .b-steps__list:first-child {
+    grid-column: 3 / span 8;
+  }
+
+  .b-steps__item {
+    grid-template-columns: 6rem minmax(0, 1fr);
+  }
+
+  .b-steps__num {
+    font-size: var(--step-4);
+  }
+}
+
+/* ---------- Llamada a contactar ---------- */
+.b-cta {
+  padding-block: var(--space-xl);
+}

@@ -1,9 +1,15 @@
 ---
+/**
+ * Detalle de colección: apertura editorial (portada = LCP, gran título, línea y temporada,
+ * entradilla), después la narrativa por bloques y un final tranquilo hacia la siguiente
+ * colección. Las fotos de la narrativa se abren en el visor a pantalla completa.
+ */
 import BaseLayout from '../layouts/BaseLayout.astro';
-import PagePlaceholder from '../components/PagePlaceholder.astro';
+import SanityImage from '../components/media/SanityImage.astro';
+import BlockRenderer from '../components/blocks/BlockRenderer.astro';
 import { localizedPath, pickLocale, t, type Locale } from '../i18n/utils';
-import { fetchSanity } from '../lib/sanity/client';
-import { collectionBySlugQuery, type CollectionSummary } from '../lib/sanity/queries';
+import { getCollection, getCollections } from '../lib/sanity/api';
+import type { CollectionLine } from '../lib/sanity/types';
 
 interface Props {
   locale: Locale;
@@ -11,18 +17,269 @@ interface Props {
 }
 
 const { locale, slug } = Astro.props;
-const collection = await fetchSanity<CollectionSummary>(collectionBySlugQuery, { slug });
+const [collection, all] = await Promise.all([getCollection(slug), getCollections()]);
+
+const lineLabel = (line: CollectionLine | undefined) =>
+  line === 'flamenca' ? t(locale, 'filter.flamenca') : line === 'pret-a-porter' ? t(locale, 'filter.pretAPorter') : undefined;
+
 const title = pickLocale(collection?.title, locale) ?? slug;
-const lineLabel =
-  collection?.line === 'flamenca'
-    ? t(locale, 'filter.flamenca')
-    : collection?.line === 'pret-a-porter'
-      ? t(locale, 'filter.pretAPorter')
-      : undefined;
+const excerpt = pickLocale(collection?.excerpt, locale);
+const line = lineLabel(collection?.line);
+const season = collection?.season ?? (collection?.year ? String(collection.year) : undefined);
+const meta = [line, season].filter(Boolean) as string[];
+const hasBody = !!collection?.body?.length;
+
+const seoTitle = pickLocale(collection?.seo?.title, locale) ?? title;
+const seoDescription = pickLocale(collection?.seo?.description, locale) ?? excerpt;
+
+// Siguiente colección en el orden del índice (circular); nada si es la única.
+const position = all.findIndex((c) => c.slug === slug);
+const nextSummary = all.length > 1 && position !== -1 ? all[(position + 1) % all.length] : undefined;
+const next = nextSummary
+  ? {
+      title: pickLocale(nextSummary.title, locale) ?? nextSummary.slug,
+      href: localizedPath('collectionDetail', locale, { slug: nextSummary.slug }),
+      line: lineLabel(nextSummary.line),
+    }
+  : undefined;
 ---
 
-<BaseLayout locale={locale} title={title}>
-  <PagePlaceholder eyebrow={lineLabel} title={title} intro={t(locale, 'page.collectionDetail.intro')}>
-    <p><a href={localizedPath('collections', locale)}>{t(locale, 'cta.allCollections')}</a></p>
-  </PagePlaceholder>
+<BaseLayout locale={locale} title={seoTitle} description={seoDescription} noindex={!collection}>
+  {
+    collection ? (
+      <article class="collection">
+        <header class="c-hero">
+          {meta.length > 0 && (
+            <p class="c-hero__meta eyebrow">
+              {meta.map((part, i) => (
+                <>
+                  {i > 0 && (
+                    <span class="c-hero__sep" aria-hidden="true">
+                      ·
+                    </span>
+                  )}
+                  <span>{part}</span>
+                </>
+              ))}
+            </p>
+          )}
+          <h1 class="c-hero__title">{title}</h1>
+          {collection.coverImage?.asset && (
+            <div class="c-hero__media">
+              <SanityImage
+                image={collection.coverImage}
+                locale={locale}
+                aspectRatio={4 / 5}
+                sizes="(min-width: 48rem) min(58vw, 70vh), 100vw"
+                priority
+              />
+            </div>
+          )}
+          {excerpt && <p class="c-hero__excerpt">{excerpt}</p>}
+        </header>
+
+        {hasBody ? (
+          <BlockRenderer blocks={collection.body} locale={locale} lightbox class="c-story" />
+        ) : (
+          <p class="c-empty">{t(locale, 'page.collectionDetail.intro')}</p>
+        )}
+
+        <nav class="c-end" aria-label={t(locale, 'collection.end')}>
+          {next && (
+            <a class="c-end__next" href={next.href}>
+              <span class="c-end__label eyebrow">{t(locale, 'collection.next')}</span>
+              <span class="c-end__title">{next.title}</span>
+              {next.line && <span class="c-end__line">{next.line}</span>}
+            </a>
+          )}
+          <a class="c-end__all" href={localizedPath('collections', locale)}>
+            {t(locale, 'cta.allCollections')}
+          </a>
+        </nav>
+      </article>
+    ) : (
+      <section class="c-missing">
+        <h1 class="c-hero__title">{title}</h1>
+        <p>{t(locale, 'collection.notFound')}</p>
+        <p>
+          <a href={localizedPath('collections', locale)}>{t(locale, 'cta.allCollections')}</a>
+        </p>
+      </section>
+    )
+  }
 </BaseLayout>
+
+<style>
+  .collection {
+    container: page / inline-size;
+  }
+
+  /* ---------- Apertura ---------- */
+  .c-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    inline-size: min(100% - 2 * var(--gutter), var(--container-max));
+    margin-inline: auto;
+    padding-block: var(--space-l) var(--space-2xl);
+  }
+
+  .c-hero__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.6em;
+    color: var(--color-text-muted);
+  }
+
+  .c-hero__title {
+    margin-block: var(--space-xs) var(--space-l);
+    font-size: clamp(3.5rem, 2rem + 9vw, 10rem);
+    line-height: 0.92;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+  }
+
+  /* Móvil: la portada a sangre, de borde a borde. */
+  .c-hero__media {
+    margin-inline: calc(-1 * var(--gutter));
+  }
+
+  .c-hero__excerpt {
+    max-inline-size: 30ch;
+    margin-block-start: var(--space-l);
+    margin-inline-start: calc(100% / 6);
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-style: italic;
+    line-height: var(--leading-snug);
+    text-wrap: pretty;
+  }
+
+  @container page (min-width: 48rem) {
+    .c-hero {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+      grid-template-rows: 1fr auto auto auto;
+      grid-template-areas:
+        '. media'
+        'meta media'
+        'title media'
+        'excerpt media';
+      column-gap: var(--gutter);
+      padding-block-start: var(--space-xl);
+    }
+
+    .c-hero__meta {
+      grid-area: meta;
+    }
+
+    .c-hero__title {
+      grid-area: title;
+      margin-block-end: 0;
+      font-size: clamp(4rem, 1rem + 7cqi, 10rem);
+    }
+
+    .c-hero__excerpt {
+      grid-area: excerpt;
+      margin-inline-start: 0;
+      margin-block: var(--space-l) var(--space-xs);
+    }
+
+    /* Escritorio: la portada nunca más alta que la pantalla. */
+    .c-hero__media {
+      grid-area: media;
+      justify-self: end;
+      inline-size: min(100%, 70svh);
+      margin-inline: 0;
+    }
+  }
+
+  .c-empty {
+    inline-size: min(100% - 2 * var(--gutter), var(--container-text));
+    margin: 0 auto var(--space-2xl);
+    color: var(--color-text-muted);
+  }
+
+  /* ---------- Final ---------- */
+  .c-end {
+    display: grid;
+    gap: var(--space-l);
+    justify-items: start;
+    inline-size: min(100% - 2 * var(--gutter), var(--container-max));
+    margin-inline: auto;
+    padding-block: var(--space-xl) var(--space-2xl);
+    border-block-start: var(--border-hairline);
+  }
+
+  .c-end__next {
+    display: grid;
+    gap: var(--space-2xs);
+    text-decoration: none;
+  }
+
+  .c-end__label,
+  .c-end__line {
+    color: var(--color-text-muted);
+  }
+
+  .c-end__line {
+    font-size: var(--step--1);
+  }
+
+  .c-end__title {
+    font-family: var(--font-display);
+    font-size: var(--step-5);
+    line-height: var(--leading-tight);
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.12em;
+    transition:
+      text-decoration-color var(--duration-base) var(--ease-out),
+      color var(--duration-fast) var(--ease-out);
+  }
+
+  .c-end__title::after {
+    content: ' →';
+    font-family: var(--font-body);
+    font-size: 0.5em;
+    vertical-align: 0.4em;
+  }
+
+  .c-end__next:hover .c-end__title,
+  .c-end__next:focus-visible .c-end__title {
+    text-decoration-color: currentColor;
+  }
+
+  .c-end__all {
+    font-size: var(--step--1);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+
+  @container page (min-width: 48rem) {
+    .c-end {
+      grid-template-columns: 1fr auto;
+      align-items: end;
+    }
+
+    .c-end__next {
+      grid-column: 1;
+    }
+
+    .c-end__all {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: end;
+    }
+  }
+
+  .c-missing {
+    inline-size: min(100% - 2 * var(--gutter), var(--container-narrow));
+    margin-inline: auto;
+    padding-block: var(--space-2xl);
+  }
+
+  .c-missing p + p {
+    margin-block-start: var(--space-s);
+  }
+</style>

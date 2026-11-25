@@ -1,0 +1,40 @@
+---
+/**
+ * Vídeo del proceso (Mux). `full`: a sangre; `inset`: encajado en la retícula
+ * (más estrecho si el vídeo es vertical). Pie de vídeo pequeño debajo.
+ */
+import MuxVideo from '../media/MuxVideo.astro';
+import { gridSizes } from './layout';
+import { pickLocale } from '../../i18n/utils';
+import type { Locale, VideoBlock } from '../../lib/sanity/types';
+
+interface Props {
+  block: VideoBlock;
+  locale: Locale;
+}
+
+const { block, locale } = Astro.props;
+const video = block.video;
+const size = block.size === 'inset' ? 'inset' : 'full';
+const caption = pickLocale(block.caption, locale);
+
+const [w, h] = (video?.aspectRatio ?? '16:9').split(':').map(Number);
+const vertical = !!w && !!h && w / h < 1;
+
+const sizes = size === 'full' ? '100vw' : vertical ? gridSizes(4, 5) : gridSizes(8, 6);
+const visible = !!(video?.playbackId || video?.poster?.asset);
+---
+
+{
+  visible && (
+    <figure
+      class:list={['b-video', `b-video--${size}`, { 'b-video--vertical': vertical, 'b-wrap b-grid': size === 'inset' }]}
+      data-reveal
+    >
+      <div class="b-video__frame">
+        <MuxVideo video={video} locale={locale} sizes={sizes} />
+      </div>
+      {caption && <figcaption class="fig__caption b-video__caption">{caption}</figcaption>}
+    </figure>
+  )
+}
