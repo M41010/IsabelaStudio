@@ -1,0 +1,66 @@
+---
+/**
+ * STUB MÍNIMO (paso 3) para que compilen los bloques. La versión completa y con estilo
+ * la aporta el paso 4 en este mismo archivo, con la misma interfaz; al fusionar, se queda esa.
+ */
+import { getSiteSettings } from '../../lib/sanity/api';
+import { pickLocale, t } from '../../i18n/utils';
+import type { CtaBlock, Locale } from '../../lib/sanity/types';
+
+interface Props {
+  cta: CtaBlock | null | undefined;
+  locale: Locale;
+}
+
+const { cta, locale } = Astro.props;
+const settings = await getSiteSettings();
+const channels = cta?.channels?.length ? cta.channels : (['email', 'instagram'] as const);
+const title = pickLocale(cta?.title, locale) ?? t(locale, 'cta.contact');
+const text = pickLocale(cta?.text, locale);
+const email = channels.includes('email') ? settings.contactEmail : undefined;
+const instagram = channels.includes('instagram') ? settings.instagramUrl : undefined;
+const handle = settings.instagramHandle ? `@${settings.instagramHandle.replace(/^@/, '')}` : t(locale, 'footer.instagram');
+---
+
+<section class="contact-cta">
+  <h2>{title}</h2>
+  {text && <p>{text}</p>}
+  {
+    (email || instagram) && (
+      <ul role="list">
+        {email && (
+          <li>
+            <a href={`mailto:${email}`}>{email}</a>
+          </li>
+        )}
+        {instagram && (
+          <li>
+            <a href={instagram} rel="noopener" target="_blank">
+              {handle}
+            </a>
+          </li>
+        )}
+      </ul>
+    )
+  }
+</section>
+
+<style>
+  .contact-cta {
+    width: min(100% - 2 * var(--gutter), var(--container-text));
+    margin-inline: auto;
+    text-align: center;
+  }
+  .contact-cta ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-m);
+    margin-block-start: var(--space-m);
+    padding: 0;
+    list-style: none;
+  }
+  .contact-cta p {
+    margin-block-start: var(--space-s);
+  }
+</style>
