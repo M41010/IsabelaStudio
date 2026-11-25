@@ -1,0 +1,60 @@
+---
+import '../styles/global.css';
+import SkipLink from '../components/layout/SkipLink.astro';
+import Header from '../components/layout/Header.astro';
+import Footer from '../components/layout/Footer.astro';
+import { alternatesForPath, defaultLocale, localeLang, t, type AlternateUrl, type Locale } from '../i18n/utils';
+import { getHasPress } from '../lib/sanity/site';
+
+interface Props {
+  locale: Locale;
+  /** Título de la página (sin el nombre del sitio). Si falta, solo "Isabela Studio". */
+  title?: string;
+  description?: string;
+  /** Alternativas de idioma. Por defecto se deducen de la URL con el mapa de rutas. */
+  alternates?: AlternateUrl[];
+  noindex?: boolean;
+}
+
+const { locale, title, description = t(locale, 'site.description'), noindex = false } = Astro.props;
+const alternates = Astro.props.alternates ?? alternatesForPath(Astro.url.pathname);
+
+const siteName = t(locale, 'site.name');
+const fullTitle = title && title !== siteName ? `${title} · ${siteName}` : siteName;
+
+const site = Astro.site ?? Astro.url;
+const absolute = (path: string) => new URL(path, site).href;
+const canonicalPath = alternates.find((a) => a.locale === locale)?.path;
+const xDefault = alternates.find((a) => a.locale === defaultLocale);
+
+const hasPress = await getHasPress();
+---
+
+<!doctype html>
+<html lang={localeLang[locale]}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex" />}
+    {canonicalPath && !noindex && <link rel="canonical" href={absolute(canonicalPath)} />}
+    {
+      !noindex &&
+        alternates.map((a) => <link rel="alternate" hreflang={a.lang} href={absolute(a.path)} />)
+    }
+    {!noindex && xDefault && <link rel="alternate" hreflang="x-default" href={absolute(xDefault.path)} />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta name="generator" content={Astro.generator} />
+    <slot name="head" />
+  </head>
+  <body>
+    <SkipLink locale={locale} />
+    <Header locale={locale} alternates={alternates} hasPress={hasPress} />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <Footer locale={locale} />
+  </body>
+</html>

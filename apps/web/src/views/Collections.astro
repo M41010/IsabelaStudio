@@ -1,0 +1,59 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PagePlaceholder from '../components/PagePlaceholder.astro';
+import { localizedPath, pickLocale, t, type Locale } from '../i18n/utils';
+import { fetchSanity } from '../lib/sanity/client';
+import { collectionsIndexQuery, type CollectionSummary } from '../lib/sanity/queries';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const title = t(locale, 'page.collections.title');
+const collections = await fetchSanity<CollectionSummary[]>(collectionsIndexQuery, {}, []);
+
+// Filtro provisional (sin JS todavía): etiquetas listas para el paso 4.
+const filters = [
+  { value: 'all', label: t(locale, 'filter.all') },
+  { value: 'pret-a-porter', label: t(locale, 'filter.pretAPorter') },
+  { value: 'flamenca', label: t(locale, 'filter.flamenca') },
+] as const;
+---
+
+<BaseLayout locale={locale} title={title}>
+  <PagePlaceholder title={title} intro={t(locale, 'page.collections.intro')}>
+    <nav aria-label={t(locale, 'filter.label')}>
+      <ul role="list" class="filters">
+        {filters.map((f) => <li data-filter={f.value}>{f.label}</li>)}
+      </ul>
+    </nav>
+
+    {
+      collections.length > 0 ? (
+        <ul role="list">
+          {collections.map((c) => (
+            <li data-line={c.line}>
+              <a href={localizedPath('collectionDetail', locale, { slug: c.slug })}>
+                {pickLocale(c.title, locale) ?? c.slug}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>{t(locale, 'page.collections.empty')}</p>
+      )
+    }
+  </PagePlaceholder>
+</BaseLayout>
+
+<style>
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s);
+    font-size: var(--step--1);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+</style>

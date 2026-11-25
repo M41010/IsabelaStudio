@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PagePlaceholder from '../components/PagePlaceholder.astro';
+import { t, type Locale } from '../i18n/utils';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const title = t(locale, 'page.contact.title');
+// PROVISIONAL: vendrán de `siteSettings` en Sanity.
+const email = t(locale, 'footer.email');
+const instagramHandle = t(locale, 'footer.instagramHandle');
+---
+
+<BaseLayout locale={locale} title={title}>
+  <PagePlaceholder title={title} intro={t(locale, 'page.contact.intro')}>
+    <ul role="list">
+      <li><a href={`mailto:${email}`}>{email}</a></li>
+      <li>
+        <a href={`https://www.instagram.com/${instagramHandle.replace(/^@/, '')}/`} rel="noopener" target="_blank">
+          {instagramHandle}
+        </a>
+      </li>
+    </ul>
+  </PagePlaceholder>
+</BaseLayout>

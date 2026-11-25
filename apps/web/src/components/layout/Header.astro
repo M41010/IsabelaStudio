@@ -1,0 +1,183 @@
+---
+import { localizedPath, matchRoute, t, type AlternateUrl, type Locale, type RouteKey, type UiKey } from '../../i18n/utils';
+import LangSwitcher from './LangSwitcher.astro';
+
+interface Props {
+  locale: Locale;
+  alternates: AlternateUrl[];
+  /** "Prensa" solo aparece si hay entradas publicadas. */
+  hasPress?: boolean;
+}
+
+const { locale, alternates, hasPress = false } = Astro.props;
+
+type NavKey = Extract<RouteKey, 'collections' | 'about' | 'bespoke' | 'press' | 'contact'>;
+const items: NavKey[] = ['collections', 'about', 'bespoke', ...(hasPress ? (['press'] as const) : []), 'contact'];
+
+const current = matchRoute(Astro.url.pathname)?.key;
+const isCurrent = (key: NavKey) => current === key || (key === 'collections' && current === 'collectionDetail');
+---
+
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="site-header__logo" href={localizedPath('home', locale)} aria-label={t(locale, 'a11y.homeLink')}>
+      Isabela Studio
+    </a>
+
+    <!--
+      Menú: Popover API, sin JavaScript. En móvil el botón abre el panel
+      (Esc y clic fuera lo cierran; el navegador gestiona aria-expanded).
+      En escritorio el panel se muestra en línea por CSS.
+    -->
+    <button class="site-header__toggle" type="button" popovertarget="site-menu" popovertargetaction="show">
+      {t(locale, 'nav.menu')}
+    </button>
+
+    <nav id="site-menu" class="site-menu" popover aria-label={t(locale, 'a11y.mainNav')}>
+      <button class="site-menu__close" type="button" popovertarget="site-menu" popovertargetaction="hide">
+        {t(locale, 'nav.close')}
+      </button>
+      <ul class="site-menu__list" role="list">
+        {
+          items.map((key) => (
+            <li>
+              <a href={localizedPath(key, locale)} aria-current={isCurrent(key) ? 'page' : undefined}>
+                {t(locale, `nav.${key}` as UiKey)}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <div class="site-menu__lang">
+        <LangSwitcher locale={locale} alternates={alternates} />
+      </div>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: relative;
+    z-index: var(--z-header);
+  }
+
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s);
+    width: min(100% - 2 * var(--gutter), var(--container-max));
+    min-height: var(--header-height);
+    margin-inline: auto;
+  }
+
+  .site-header__logo {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    letter-spacing: 0.02em;
+    text-decoration: none;
+  }
+
+  .site-header__toggle,
+  .site-menu__close {
+    border: 0;
+    background: none;
+    padding: var(--space-2xs);
+    margin-inline-end: calc(-1 * var(--space-2xs));
+    font-size: var(--step--1);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+
+  /* ---------- Móvil: panel a pantalla completa ---------- */
+  .site-menu {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: var(--space-s) var(--gutter) var(--space-xl);
+    border: 0;
+    background: var(--color-bg);
+    color: var(--color-text);
+    z-index: var(--z-menu);
+    flex-direction: column;
+    gap: var(--space-xl);
+    opacity: 0;
+    transition:
+      opacity var(--duration-base) var(--ease-out),
+      display var(--duration-base) allow-discrete,
+      overlay var(--duration-base) allow-discrete;
+  }
+
+  .site-menu:popover-open {
+    display: flex;
+    opacity: 1;
+  }
+
+  @starting-style {
+    .site-menu:popover-open {
+      opacity: 0;
+    }
+  }
+
+  .site-menu__close {
+    align-self: flex-end;
+    min-height: calc(var(--header-height) - 2 * var(--space-s));
+  }
+
+  .site-menu__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+  }
+
+  .site-menu__list a {
+    font-family: var(--font-display);
+    font-size: var(--step-4);
+    line-height: var(--leading-tight);
+    text-decoration: none;
+  }
+
+  .site-menu__list a[aria-current='page'] {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+  }
+
+  /* ---------- Escritorio: navegación en línea ---------- */
+  @media (min-width: 60em) {
+    .site-header__toggle,
+    .site-menu__close {
+      display: none;
+    }
+
+    .site-menu,
+    .site-menu:popover-open {
+      position: static;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: var(--space-l);
+      width: auto;
+      height: auto;
+      padding: 0;
+      background: none;
+      opacity: 1;
+      overflow: visible;
+    }
+
+    .site-menu__list {
+      flex-direction: row;
+      gap: var(--space-m);
+    }
+
+    .site-menu__list a {
+      font-family: var(--font-body);
+      font-size: var(--step--1);
+      letter-spacing: var(--tracking-caps);
+      text-transform: uppercase;
+    }
+  }
+</style>

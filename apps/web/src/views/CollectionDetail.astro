@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PagePlaceholder from '../components/PagePlaceholder.astro';
+import { localizedPath, pickLocale, t, type Locale } from '../i18n/utils';
+import { fetchSanity } from '../lib/sanity/client';
+import { collectionBySlugQuery, type CollectionSummary } from '../lib/sanity/queries';
+
+interface Props {
+  locale: Locale;
+  slug: string;
+}
+
+const { locale, slug } = Astro.props;
+const collection = await fetchSanity<CollectionSummary>(collectionBySlugQuery, { slug });
+const title = pickLocale(collection?.title, locale) ?? slug;
+const lineLabel =
+  collection?.line === 'flamenca'
+    ? t(locale, 'filter.flamenca')
+    : collection?.line === 'pret-a-porter'
+      ? t(locale, 'filter.pretAPorter')
+      : undefined;
+---
+
+<BaseLayout locale={locale} title={title}>
+  <PagePlaceholder eyebrow={lineLabel} title={title} intro={t(locale, 'page.collectionDetail.intro')}>
+    <p><a href={localizedPath('collections', locale)}>{t(locale, 'cta.allCollections')}</a></p>
+  </PagePlaceholder>
+</BaseLayout>
