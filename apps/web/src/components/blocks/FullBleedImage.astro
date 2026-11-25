@@ -1,0 +1,38 @@
+---
+/**
+ * Foto a sangre, de borde a borde.
+ * Móvil: marco vertical 4:5 recortado alrededor del hotspot (object-position).
+ * Escritorio: proporción natural, como mucho la altura de la pantalla.
+ * `parallax` solo marca `data-parallax`; el movimiento lo añade la capa de motion (paso 6).
+ */
+import Figure from './Figure.astro';
+import { naturalRatio } from './layout';
+import type { FullBleedImageBlock, Locale } from '../../lib/sanity/types';
+
+interface Props {
+  block: FullBleedImageBlock;
+  locale: Locale;
+  zoom?: boolean;
+}
+
+const { block, locale, zoom = false } = Astro.props;
+const ratio = naturalRatio(block.image, 3 / 2);
+const MOBILE_RATIO = 4 / 5;
+
+// En móvil la imagen cubre un marco 4:5 del ancho de la ventana: si es más apaisada que
+// el marco, se pinta a (alto del marco × proporción) de ancho, es decir 125vw × proporción.
+const mobileVw = ratio > MOBILE_RATIO ? Math.ceil((100 / MOBILE_RATIO) * ratio) : 100;
+const sizes = `(min-width: 48rem) 100vw, ${mobileVw}vw`;
+---
+
+<Figure
+  image={block.image}
+  locale={locale}
+  sizes={sizes}
+  fill
+  zoom={zoom}
+  class="b-bleed"
+  frameClass="b-bleed__frame"
+  style={`--b-ratio:${ratio.toFixed(4)}`}
+  data-parallax={block.parallax ? '' : undefined}
+/>

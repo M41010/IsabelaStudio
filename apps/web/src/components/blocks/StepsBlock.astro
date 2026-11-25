@@ -1,0 +1,67 @@
+---
+/**
+ * Pasos numerados (<ol>): proceso de un encargo, etapas de confección…
+ * Móvil: título y pasos apilados. Escritorio: título fijo a la izquierda y pasos a la derecha.
+ * El número visible es decorativo (la lista ordenada ya lo anuncia).
+ */
+import Heading from './Heading.astro';
+import { pad2 } from './layout';
+import { pickLocale, t } from '../../i18n/utils';
+import type { Locale, StepsBlock } from '../../lib/sanity/types';
+
+interface Props {
+  block: StepsBlock;
+  locale: Locale;
+  level?: 2 | 3;
+}
+
+const { block, locale, level = 2 } = Astro.props;
+const title = pickLocale(block.title, locale);
+const intro = pickLocale(block.intro, locale);
+const steps = (block.steps ?? [])
+  .map((s) => ({ key: s._key, title: pickLocale(s.title, locale), text: pickLocale(s.text, locale) }))
+  .filter((s) => s.title || s.text);
+const variantLabel =
+  block.variant === 'flamenca'
+    ? t(locale, 'filter.flamenca')
+    : block.variant === 'pret-a-porter'
+      ? t(locale, 'filter.pretAPorter')
+      : undefined;
+// Si el bloque no tiene título, los pasos cuelgan del nivel actual.
+const stepLevel = (title ? Math.min(level + 1, 4) : level) as 2 | 3 | 4;
+---
+
+{
+  steps.length > 0 && (
+    <div class="b-steps b-wrap b-grid">
+      {(title || intro || variantLabel) && (
+        <div class="b-steps__head" data-reveal>
+          {variantLabel && <p class="eyebrow b-steps__variant">{variantLabel}</p>}
+          {title && (
+            <Heading level={level} class="b-steps__title">
+              {title}
+            </Heading>
+          )}
+          {intro && <p class="b-steps__intro">{intro}</p>}
+        </div>
+      )}
+      <ol class="b-steps__list" role="list">
+        {steps.map((step, i) => (
+          <li class="b-steps__item" data-reveal>
+            <span class="b-steps__num" aria-hidden="true">
+              {pad2(i + 1)}
+            </span>
+            <div class="b-steps__body">
+              {step.title && (
+                <Heading level={stepLevel} class="b-steps__step-title">
+                  {step.title}
+                </Heading>
+              )}
+              {step.text && <p class="b-steps__text">{step.text}</p>}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}

@@ -1,0 +1,89 @@
+---
+/**
+ * Foto de un bloque: <figure> + pie de foto opcional.
+ * Con `zoom`, la foto es un enlace real a la versión grande (funciona sin JS) que el visor
+ * a pantalla completa intercepta (`data-lightbox`, ver components/lightbox/Lightbox.astro).
+ * Los estilos viven en `blocks.css` (clases `fig*`).
+ */
+import SanityImage from '../media/SanityImage.astro';
+import { pickLocale, t } from '../../i18n/utils';
+import type { Locale, SanityImage as SanityImageData } from '../../lib/sanity/types';
+import { zoomSource } from '../../lib/zoom';
+
+interface Props {
+  image: SanityImageData | null | undefined;
+  locale: Locale;
+  sizes: string;
+  /** Fuerza una proporción (recorte en el CDN según el hotspot). */
+  aspectRatio?: number;
+  /** La imagen cubre el marco (el marco define el tamaño por CSS). */
+  fill?: boolean;
+  zoom?: boolean;
+  priority?: boolean;
+  /** Muestra el pie de foto del CMS si existe. */
+  caption?: boolean;
+  /** Índice editorial pequeño junto al pie ("01"). Decorativo. */
+  index?: string;
+  class?: string;
+  frameClass?: string;
+  style?: string;
+  [key: `data-${string}`]: unknown;
+}
+
+const {
+  image,
+  locale,
+  sizes,
+  aspectRatio,
+  fill = false,
+  zoom = false,
+  priority = false,
+  caption: showCaption = true,
+  index,
+  class: className,
+  frameClass,
+  style,
+  ...rest
+} = Astro.props;
+
+const alt = pickLocale(image?.alt, locale) ?? '';
+const caption = showCaption ? pickLocale(image?.caption, locale) : undefined;
+const big = zoom ? zoomSource(image) : null;
+const label = big ? (alt ? `${t(locale, 'lightbox.open')}: ${alt}` : t(locale, 'lightbox.open')) : undefined;
+const Frame = big ? 'a' : 'div';
+---
+
+{
+  image?.asset && (
+    <figure class:list={['fig', className]} style={style} data-reveal {...rest}>
+      <Frame
+        class:list={['fig__frame', { 'fig__frame--zoom': big }, frameClass]}
+        href={big?.src}
+        aria-label={label}
+        data-lightbox={big ? '' : undefined}
+        data-pswp-width={big?.width}
+        data-pswp-height={big?.height}
+        data-pswp-srcset={big?.srcset}
+        data-caption={big ? caption : undefined}
+      >
+        <SanityImage image={image} locale={locale} sizes={sizes} aspectRatio={aspectRatio} fill={fill} priority={priority} />
+      </Frame>
+      {caption ? (
+        <figcaption class="fig__caption">
+          {index && (
+            <span class="fig__index" aria-hidden="true">
+              {index}
+            </span>
+          )}
+          <span class="fig__text">{caption}</span>
+        </figcaption>
+      ) : (
+        index && (
+          <span class="fig__caption" aria-hidden="true">
+            <span class="fig__index">{index}</span>
+          </span>
+        )
+      )}
+    </figure>
+  )
+}

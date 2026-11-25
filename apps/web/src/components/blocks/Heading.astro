@@ -1,0 +1,13 @@
+---
+/** Encabezado con nivel variable: el BlockRenderer decide h2/h3 según haya capítulos antes. */
+interface Props {
+  level?: 2 | 3 | 4;
+  class?: string;
+  id?: string;
+}
+
+const { level = 2, class: className, id } = Astro.props;
+const Tag = `h${level}` as 'h2' | 'h3' | 'h4';
+---
+
+<Tag class={className} id={id}><slot /></Tag>

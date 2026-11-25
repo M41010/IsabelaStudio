@@ -1,0 +1,33 @@
+---
+/**
+ * Texto editorial. `width` coloca el texto en la retícula como en una revista:
+ * narrow (centrado, medida de lectura), offsetLeft / offsetRight (desplazado, con la
+ * entradilla al margen en escritorio) y twoColumns (dos columnas de texto).
+ */
+import RichText from '../text/RichText.astro';
+import { pickLocale } from '../../i18n/utils';
+import type { Locale, TextBlock } from '../../lib/sanity/types';
+
+interface Props {
+  block: TextBlock;
+  locale: Locale;
+}
+
+const { block, locale } = Astro.props;
+const width = block.width ?? 'narrow';
+const eyebrow = pickLocale(block.eyebrow, locale);
+const hasBody = !!pickLocale(block.body, locale)?.length;
+---
+
+{
+  (hasBody || eyebrow) && (
+    <div class:list={['b-text', `b-text--${width}`, 'b-wrap', 'b-grid']} data-reveal>
+      {eyebrow && <p class="b-text__eyebrow eyebrow">{eyebrow}</p>}
+      {hasBody && (
+        <div class="b-text__body">
+          <RichText value={block.body} locale={locale} />
+        </div>
+      )}
+    </div>
+  )
+}

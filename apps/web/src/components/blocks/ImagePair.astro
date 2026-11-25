@@ -1,0 +1,51 @@
+---
+/**
+ * Dos fotos en doble página asimétrica. `layout` decide cuál es la protagonista
+ * (más grande, 4:5); la secundaria es más pequeña y se desplaza en vertical.
+ * Móvil: una debajo de otra, la secundaria más estrecha y sangrada hacia un lado.
+ */
+import Figure from './Figure.astro';
+import { clampRatio, gridSizes, hasImage } from './layout';
+import type { ImagePairBlock, Locale } from '../../lib/sanity/types';
+
+interface Props {
+  block: ImagePairBlock;
+  locale: Locale;
+  zoom?: boolean;
+}
+
+const { block, locale, zoom = false } = Astro.props;
+const layout = block.layout === 'rightTall' ? 'rightTall' : 'leftTall';
+const leftIsMain = layout === 'leftTall';
+
+const MAIN = { ratio: 4 / 5, sizes: gridSizes(7, 6) };
+// Secundaria: proporción natural, salvo extremos (muy apaisada o muy alargada).
+const secondary = (img: ImagePairBlock['left']) => ({ ratio: clampRatio(img, 2 / 3, 4 / 3), sizes: gridSizes(4, 4) });
+
+const left = leftIsMain ? MAIN : secondary(block.left);
+const right = leftIsMain ? secondary(block.right) : MAIN;
+const count = [block.left, block.right].filter(hasImage).length;
+---
+
+{
+  count > 0 && (
+    <div class:list={['b-pair', `b-pair--${layout}`, { 'b-pair--single': count === 1 }, 'b-wrap', 'b-grid']}>
+      <Figure
+        image={block.left}
+        locale={locale}
+        sizes={left.sizes}
+        aspectRatio={left.ratio}
+        zoom={zoom}
+        class:list={['b-pair__item', 'b-pair__left', leftIsMain ? 'b-pair__main' : 'b-pair__aside']}
+      />
+      <Figure
+        image={block.right}
+        locale={locale}
+        sizes={right.sizes}
+        aspectRatio={right.ratio}
+        zoom={zoom}
+        class:list={['b-pair__item', 'b-pair__right', leftIsMain ? 'b-pair__aside' : 'b-pair__main']}
+      />
+    </div>
+  )
+}
