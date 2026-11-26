@@ -148,6 +148,8 @@ export interface CollectionDetail extends CollectionSummary {
 
 export interface PageDoc {
   _id: string;
+  /** Última edición (ISO). Las páginas legales la muestran como «Última actualización». */
+  _updatedAt?: string | null;
   title: LocaleString;
   intro?: LocaleText | null;
   body?: ModularBlock[] | null;
