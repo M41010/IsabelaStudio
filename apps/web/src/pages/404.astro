@@ -1,47 +1,183 @@
 ---
 /**
- * 404 común. No sabemos el idioma del visitante: mensaje bilingüe, ES por defecto
- * en <html lang> y la parte inglesa marcada con lang="en".
+ * 404 común. No sabemos el idioma del visitante: página bilingüe, ES por defecto en
+ * <html lang> y la parte inglesa marcada con lang="en".
+ * Composición tipográfica: un «404» enorme en serif, recortado y en hueco, como un
+ * número de capítulo de revista, y dos columnas (ES / EN) con salidas a cada idioma.
+ * No depende de datos de Sanity.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { localizedPath, t } from '../i18n/utils';
+import { localizedPath, t, type Locale } from '../i18n/utils';
+
+const langs: { locale: Locale; heading: 'h1' | 'h2' }[] = [
+  { locale: 'es', heading: 'h1' },
+  { locale: 'en', heading: 'h2' },
+];
 ---
 
 <BaseLayout locale="es" title={`${t('es', '404.title')} / ${t('en', '404.title')}`} alternates={[]} noindex>
-  <section class="not-found container">
-    <p class="eyebrow" aria-hidden="true">404</p>
-    <div class="not-found__lang">
-      <h1>{t('es', '404.title')}</h1>
-      <p>{t('es', '404.text')}</p>
-      <p><a href={localizedPath('home', 'es')}>{t('es', 'cta.backHome')}</a></p>
-    </div>
-    <div class="not-found__lang" lang="en">
-      <h2>{t('en', '404.title')}</h2>
-      <p>{t('en', '404.text')}</p>
-      <p><a href={localizedPath('home', 'en')} hreflang="en">{t('en', 'cta.backHome')}</a></p>
+  <section class="not-found">
+    <p class="not-found__num" aria-hidden="true">
+      <span>4</span><span class="not-found__zero">0</span><span>4</span>
+    </p>
+
+    <div class="not-found__langs">
+      {
+        langs.map(({ locale, heading: Heading }) => (
+          <div class="not-found__lang" lang={locale === 'es' ? undefined : 'en'}>
+            <p class="eyebrow not-found__eyebrow">
+              {t(locale, '404.eyebrow')}
+              <span aria-hidden="true"> · </span>
+              {t(locale, 'lang.current')}
+            </p>
+            <Heading class="not-found__title">{t(locale, '404.headline')}</Heading>
+            <p class="not-found__text">{t(locale, '404.text')}</p>
+            <nav aria-label={t(locale, '404.suggestions')}>
+              <ul class="not-found__links" role="list">
+                <li>
+                  <a href={localizedPath('home', locale)} hreflang={locale}>
+                    {t(locale, 'cta.backHome')}
+                    <span aria-hidden="true">→</span>
+                  </a>
+                </li>
+                <li>
+                  <a href={localizedPath('collections', locale)} hreflang={locale}>
+                    {t(locale, 'cta.allCollections')}
+                    <span aria-hidden="true">→</span>
+                  </a>
+                </li>
+                <li>
+                  <a href={localizedPath('contact', locale)} hreflang={locale}>
+                    {t(locale, 'nav.contact')}
+                    <span aria-hidden="true">→</span>
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        ))
+      }
     </div>
   </section>
 </BaseLayout>
 
 <style>
   .not-found {
+    width: min(100% - 2 * var(--gutter), var(--container-wide));
+    margin-inline: auto;
+    padding-block: var(--space-l) var(--space-3xl);
+  }
+
+  /* ---------- Número ---------- */
+  .not-found__num {
+    display: flex;
+    justify-content: space-between;
+    margin-inline: -0.04em;
+    font-family: var(--font-display);
+    font-size: clamp(9rem, 2rem + 36vw, 26rem);
+    font-weight: 300;
+    font-variant-numeric: lining-nums;
+    line-height: 0.8;
+    letter-spacing: -0.06em;
+    color: var(--color-text);
+    user-select: none;
+  }
+
+  /* El cero en hueco y en cursiva: un «descosido» tipográfico. */
+  .not-found__zero {
+    font-style: italic;
+    color: transparent;
+    -webkit-text-stroke: max(1px, 0.008em) var(--color-accent);
+    transform: translateY(0.08em);
+  }
+
+  @supports not (-webkit-text-stroke: 1px black) {
+    .not-found__zero {
+      color: var(--color-accent);
+    }
+  }
+
+  /* ---------- Textos ES / EN ---------- */
+  .not-found__langs {
     display: grid;
     gap: var(--space-xl);
-    padding-block: var(--space-2xl);
+    margin-block-start: var(--space-xl);
+    border-block-start: 1px solid var(--color-text);
   }
 
   .not-found__lang {
     display: grid;
     gap: var(--space-s);
-    max-width: var(--container-text);
-  }
-
-  .not-found h2 {
-    font-size: var(--step-6);
+    align-content: start;
+    padding-block-start: var(--space-m);
   }
 
   .not-found__lang + .not-found__lang {
-    padding-block-start: var(--space-xl);
     border-block-start: var(--border-hairline);
+  }
+
+  .not-found__eyebrow {
+    color: var(--color-text-muted);
+  }
+
+  .not-found__title {
+    max-width: 14ch;
+    font-size: var(--step-5);
+    font-style: italic;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  .not-found__text {
+    max-width: 34ch;
+    color: var(--color-text-muted);
+  }
+
+  .not-found__links {
+    margin-block-start: var(--space-xs);
+    padding: 0;
+    list-style: none;
+    border-block-start: var(--border-hairline);
+  }
+
+  .not-found__links li {
+    border-block-end: var(--border-hairline);
+  }
+
+  .not-found__links a {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    min-block-size: 2.75rem;
+    padding-block: var(--space-2xs);
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    text-decoration: none;
+  }
+
+  .not-found__links a span {
+    transition: transform var(--duration-base) var(--ease-out);
+  }
+
+  .not-found__links a:hover span {
+    transform: translateX(0.3em);
+  }
+
+  @media (min-width: 48em) {
+    .not-found__langs {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: calc(2 * var(--gutter));
+    }
+
+    .not-found__lang + .not-found__lang {
+      border-block-start: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .not-found__links a:hover span {
+      transform: none;
+    }
   }
 </style>

@@ -18,6 +18,11 @@ import path from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {createClient, type SanityClient} from '@sanity/client'
 import {placeholderImage, placeholderLogo, type Ratio, type Tint} from './placeholders'
+import {
+  legalMarkupToPortableText,
+  legalTexts,
+  type LegalPageId,
+} from '../../web/src/lib/sanity/legal-texts'
 
 // --- Entorno ---------------------------------------------------------------
 
@@ -473,69 +478,50 @@ async function buildBespoke() {
   }
 }
 
-function legalPage(id: string, title: L, paragraphs: L<string[]>) {
+/**
+ * Páginas legales: BORRADORES (pendientes de revisión profesional) con marcadores
+ * `[PENDIENTE: …]` para los datos del titular. El texto vive en la web
+ * (`apps/web/src/lib/sanity/legal-texts.ts`) para que los fixtures y el seed sean idénticos;
+ * se carga como un `textBlock` con subtítulos h2/h3, listas y enlaces editables en el Studio.
+ */
+const LEGAL_SEO: Record<LegalPageId, L> = {
+  'legal-notice': {
+    es: 'Aviso legal de Isabela Studio: datos del titular, condiciones de uso y propiedad intelectual.',
+    en: 'Isabela Studio legal notice: owner details, terms of use and intellectual property.',
+  },
+  privacy: {
+    es: 'Cómo trata Isabela Studio tus datos personales y cómo ejercer tus derechos.',
+    en: 'How Isabela Studio processes your personal data and how to exercise your rights.',
+  },
+  cookies: {
+    es: 'Qué cookies usa la web de Isabela Studio y cómo aceptarlas, rechazarlas o configurarlas.',
+    en: 'Which cookies the Isabela Studio website uses and how to accept, reject or configure them.',
+  },
+}
+
+function legalPage(id: LegalPageId) {
+  const text = legalTexts[id]
   return {
     _id: id,
     _type: 'page',
-    title: ls(title.es, title.en),
+    title: ls(text.title.es, text.title.en),
     body: [
       {
         _key: key(),
         _type: 'textBlock',
         width: 'narrow',
-        body: lrt(paragraphs.es, paragraphs.en),
+        body: {
+          _type: 'localeRichText',
+          es: legalMarkupToPortableText(text.es, key),
+          en: legalMarkupToPortableText(text.en, key),
+        },
       },
     ],
+    seo: seoObj(text.title, LEGAL_SEO[id]),
   }
 }
 
-const PENDING_ES = '[PENDIENTE: datos del titular]'
-const PENDING_EN = '[PENDING: owner details]'
-
-const legalPages = [
-  legalPage(
-    'legal-notice',
-    {es: 'Aviso legal', en: 'Legal notice'},
-    {
-      es: [
-        `${PENDING_ES} Titular: nombre completo, NIF, domicilio y email de contacto.`,
-        'Texto provisional. Este aviso legal debe completarse con los datos del titular conforme a la LSSI-CE antes de publicar la web.',
-      ],
-      en: [
-        `${PENDING_EN} Owner: full name, tax ID, address and contact email.`,
-        'Placeholder text. This legal notice must be completed with the owner details under Spanish law (LSSI-CE) before going live.',
-      ],
-    },
-  ),
-  legalPage(
-    'privacy',
-    {es: 'Política de privacidad', en: 'Privacy policy'},
-    {
-      es: [
-        `${PENDING_ES} Responsable del tratamiento y datos de contacto.`,
-        'Texto provisional. Describir qué datos se recogen (emails recibidos, analítica con consentimiento), con qué finalidad, base legal, plazos de conservación y derechos RGPD.',
-      ],
-      en: [
-        `${PENDING_EN} Data controller and contact details.`,
-        'Placeholder text. Describe what data is collected (emails received, analytics with consent), purpose, legal basis, retention periods and GDPR rights.',
-      ],
-    },
-  ),
-  legalPage(
-    'cookies',
-    {es: 'Política de cookies', en: 'Cookie policy'},
-    {
-      es: [
-        `${PENDING_ES}`,
-        'Texto provisional. Enumerar las cookies técnicas y las de analítica (Google Analytics 4, solo con consentimiento), su finalidad y duración, y cómo cambiar las preferencias.',
-      ],
-      en: [
-        `${PENDING_EN}`,
-        'Placeholder text. List technical and analytics cookies (Google Analytics 4, only with consent), their purpose and duration, and how to change preferences.',
-      ],
-    },
-  ),
-]
+const legalPages = (['legal-notice', 'privacy', 'cookies'] as const).map(legalPage)
 
 // --- Inicio y ajustes ---------------------------------------------------------------
 

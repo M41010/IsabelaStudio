@@ -8,10 +8,16 @@ interface Props {
   /** "Prensa" solo aparece si hay entradas publicadas. */
   hasPress?: boolean;
   /**
+   * Todas las páginas: cabecera pegajosa (`position: sticky`, en el flujo normal, así que
+   * nunca tapa la apertura) que se esconde al bajar y reaparece al subir, con un script
+   * mínimo. Sin JS o con `prefers-reduced-motion` queda fija arriba, sin esconderse.
+   * Nunca se esconde con el menú abierto ni con el foco dentro.
+   *
    * `overlay` (portada): cabecera transparente con texto claro sobre el vídeo.
    * - Sin JS: se coloca en absoluto sobre la portada y se va con el scroll.
-   * - Con JS (script mínimo, solo en esta variante): queda fija y, al dejar atrás el
-   *   elemento `[data-header-overlay-until]`, pasa a la cabecera normal (fondo marfil).
+   * - Con JS: queda fija sobre la portada y, al dejar atrás el elemento
+   *   `[data-header-overlay-until]`, pasa a la cabecera normal (fondo marfil) y se
+   *   comporta como en el resto de páginas.
    * Contraste AA en ambos estados: degradado oscuro propio bajo el texto claro.
    */
   variant?: 'default' | 'overlay';
@@ -27,7 +33,11 @@ const current = matchRoute(Astro.url.pathname)?.key;
 const isCurrent = (key: NavKey) => current === key || (key === 'collections' && current === 'collectionDetail');
 ---
 
-<header class:list={['site-header', { 'site-header--overlay': overlay }]} data-site-header>
+<header
+  class:list={['site-header', { 'site-header--overlay': overlay }]}
+  data-site-header
+  data-overlay={overlay ? '' : undefined}
+>
   <div class="site-header__inner">
     <a class="site-header__logo" href={localizedPath('home', locale)} aria-label={t(locale, 'a11y.homeLink')}>
       Isabela Studio
@@ -64,28 +74,79 @@ const isCurrent = (key: NavKey) => current === key || (key === 'collections' && 
   </div>
 </header>
 
-{
-  overlay && (
-    <script is:inline type="module">
-      // `type="module"` lo difiere hasta que la portada (más abajo) ya está en el DOM.
-      (() => {
-        const header = document.querySelector('[data-site-header]');
-        const until = document.querySelector('[data-header-overlay-until]');
-        if (!header || !until || !('IntersectionObserver' in window)) return;
-        header.setAttribute('data-pinned', '');
-        new IntersectionObserver(
-          ([entry]) => header.toggleAttribute('data-solid', !entry.isIntersecting),
-          { rootMargin: `-${header.offsetHeight}px 0px 0px 0px` },
-        ).observe(until);
-      })();
-    </script>
-  )
-}
+<script is:inline type="module">
+  // `type="module"` lo difiere hasta que el resto de la página ya está en el DOM.
+  (() => {
+    const header = document.querySelector('[data-site-header]');
+    if (!header) return;
+
+    // Portada: transparente sobre el vídeo, sólida al dejarlo atrás.
+    const until = header.hasAttribute('data-overlay') && document.querySelector('[data-header-overlay-until]');
+    const overlay = !!until && 'IntersectionObserver' in window;
+    if (overlay) {
+      header.setAttribute('data-pinned', '');
+      new IntersectionObserver(([entry]) => header.toggleAttribute('data-solid', !entry.isIntersecting), {
+        rootMargin: `-${header.offsetHeight}px 0px 0px 0px`,
+      }).observe(until);
+    }
+
+    // Esconder al bajar, mostrar al subir.
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+    const menu = header.querySelector('[popover]');
+    const menuOpen = () => {
+      try {
+        return !!menu && menu.matches(':popover-open');
+      } catch {
+        return false;
+      }
+    };
+    let lastY = Math.max(0, window.scrollY);
+    let queued = false;
+    const update = () => {
+      queued = false;
+      const y = Math.max(0, window.scrollY);
+      header.toggleAttribute('data-scrolled', y > 0);
+      const delta = y - lastY;
+      if (Math.abs(delta) < 8) return;
+      lastY = y;
+      const canHide =
+        !reduce.matches &&
+        !menuOpen() &&
+        !header.querySelector(':focus-visible') &&
+        (!overlay || header.hasAttribute('data-solid')) &&
+        y > header.offsetHeight * 2;
+      header.toggleAttribute('data-hidden', delta > 0 && canHide);
+    };
+    const queue = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(update);
+    };
+    addEventListener('scroll', queue, { passive: true });
+    header.addEventListener('focusin', () => header.removeAttribute('data-hidden'));
+    update();
+  })();
+</script>
 
 <style>
   .site-header {
-    position: relative;
+    position: sticky;
+    inset-block-start: 0;
     z-index: var(--z-header);
+    background-color: var(--color-bg);
+    transition:
+      transform var(--duration-base) var(--ease-out),
+      box-shadow var(--duration-base) var(--ease-out);
+  }
+
+  /* Filete inferior solo cuando hay contenido pasando por debajo. */
+  .site-header[data-scrolled] {
+    box-shadow: 0 1px 0 var(--color-line);
+  }
+
+  /* Escondida al bajar (los 2px extra ocultan también el filete). */
+  .site-header[data-hidden] {
+    transform: translateY(calc(-100% - 2px));
   }
 
   .site-header__inner {
@@ -213,7 +274,9 @@ const isCurrent = (key: NavKey) => current === key || (key === 'collections' && 
     position: absolute;
     inset-block-start: 0;
     inset-inline: 0;
+    background-color: transparent;
     transition:
+      transform var(--duration-base) var(--ease-out),
       background-color var(--duration-base) var(--ease-out),
       color var(--duration-base) var(--ease-out),
       box-shadow var(--duration-base) var(--ease-out);
@@ -272,6 +335,10 @@ const isCurrent = (key: NavKey) => current === key || (key === 'collections' && 
     background-color: var(--color-bg);
     color: var(--color-text);
     box-shadow: 0 1px 0 var(--color-line);
+  }
+
+  .site-header--overlay:not([data-solid]) {
+    box-shadow: none;
   }
 
   .site-header--overlay[data-solid]::before {

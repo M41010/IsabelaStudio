@@ -63,7 +63,7 @@ export const collectionBySlugQuery = /* groq */ `
 /** Página fija por id (about, bespoke, legal-notice, privacy, cookies). */
 export const pageByIdQuery = /* groq */ `
   *[_type == "page" && _id == $id][0] {
-    _id, title, intro,
+    _id, _updatedAt, title, intro,
     ${MODULAR_BODY},
     ${SEO}
   }

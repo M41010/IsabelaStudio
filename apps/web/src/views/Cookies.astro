@@ -1,16 +1,15 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import PagePlaceholder from '../components/PagePlaceholder.astro';
-import { t, type Locale } from '../i18n/utils';
+/** Política de cookies: texto del CMS (página fija `cookies`) con la maqueta de lectura común. */
+import LegalPage from '../components/legal/LegalPage.astro';
+import { getPage } from '../lib/sanity/api';
+import type { Locale } from '../i18n/utils';
 
 interface Props {
   locale: Locale;
 }
 
 const { locale } = Astro.props;
-const title = t(locale, 'page.cookies.title');
+const page = await getPage('cookies');
 ---
 
-<BaseLayout locale={locale} title={title}>
-  <PagePlaceholder title={title} intro={t(locale, 'page.legal.placeholder')} />
-</BaseLayout>
+<LegalPage page={page} locale={locale} route="cookies" titleKey="page.cookies.title" />
