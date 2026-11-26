@@ -6,7 +6,7 @@
  * ventana, así que los anchos del contenedor coinciden con los de la ventana y se pueden
  * traducir a `sizes` con media queries.
  */
-import type { SanityImage } from '../../lib/sanity/types';
+import type { ModularBlock, SanityImage } from '../../lib/sanity/types';
 
 /** Debe coincidir con `--container-max` (110rem) en tokens.css. */
 const WRAP_MAX_REM = 110;
@@ -52,3 +52,21 @@ export const hasImage = (image: SanityImage | null | undefined): image is Sanity
 
 /** Número de dos cifras para índices editoriales: 1 → "01". */
 export const pad2 = (n: number) => String(n).padStart(2, '0');
+
+export type StepsAnchor = 'pret-a-porter' | 'flamenca';
+
+/**
+ * Anclas de los bloques de pasos de una línea concreta (`#pret-a-porter`, `#flamenca`):
+ * solo el primero de cada línea, para que los ids no se repitan. Clave: `_key` del bloque.
+ */
+export function stepsAnchors(blocks: ModularBlock[] | null | undefined): Map<string, StepsAnchor> {
+  const anchors = new Map<string, StepsAnchor>();
+  for (const block of Array.isArray(blocks) ? blocks : []) {
+    if (block?._type !== 'stepsBlock' || !block._key || !block.steps?.length) continue;
+    const variant = block.variant;
+    if ((variant === 'pret-a-porter' || variant === 'flamenca') && ![...anchors.values()].includes(variant)) {
+      anchors.set(block._key, variant);
+    }
+  }
+  return anchors;
+}
