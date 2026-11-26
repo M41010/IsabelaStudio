@@ -1,100 +1,205 @@
 ---
-import { localizedPath, t, type Locale } from '../../i18n/utils';
+/**
+ * Pie de página: lo último que se ve en cada página. Firma de la casa (nombre y lema),
+ * contacto (email e Instagram de `siteSettings`), enlaces legales y ©.
+ * Si `siteSettings` no trae email o Instagram, se usan los textos de respaldo de i18n.
+ */
+import { localizedPath, pickLocale, t, type Locale } from '../../i18n/utils';
+import { getSiteSettings } from '../../lib/sanity/api';
 
 interface Props {
   locale: Locale;
 }
 
 const { locale } = Astro.props;
+const settings = await getSiteSettings();
 
-// PROVISIONAL: se sustituirán por los datos de `siteSettings` en Sanity.
-const email = t(locale, 'footer.email');
-const instagramHandle = t(locale, 'footer.instagramHandle');
-const instagramUrl = `https://www.instagram.com/${instagramHandle.replace(/^@/, '')}/`;
+const siteName = settings.siteName?.trim() || t(locale, 'site.name');
+const tagline = pickLocale(settings.tagline, locale) || t(locale, 'footer.tagline');
+
+const email = settings.contactEmail?.trim() || t(locale, 'footer.email');
+const handle = (settings.instagramHandle?.trim() || t(locale, 'footer.instagramHandle')).replace(/^@/, '');
+const instagramUrl = settings.instagramUrl?.trim() || `https://www.instagram.com/${handle}/`;
 const year = new Date().getFullYear();
+
+const legal = [
+  { href: localizedPath('legalNotice', locale), label: t(locale, 'footer.legalNotice') },
+  { href: localizedPath('privacy', locale), label: t(locale, 'footer.privacy') },
+  { href: localizedPath('cookies', locale), label: t(locale, 'footer.cookies') },
+];
 ---
 
 <footer class="site-footer">
   <div class="site-footer__inner">
+    <div class="site-footer__brand">
+      <a class="site-footer__name" href={localizedPath('home', locale)}>{siteName}</a>
+      {tagline && <p class="site-footer__tagline">{tagline}</p>}
+    </div>
+
     <div class="site-footer__contact">
-      <p class="eyebrow">{t(locale, 'footer.contact')}</p>
+      <h2 class="site-footer__heading eyebrow">{t(locale, 'footer.contact')}</h2>
       <ul role="list">
-        <li><a href={`mailto:${email}`}>{email}</a></li>
+        <li><a class="site-footer__link" href={`mailto:${email}`}>{email}</a></li>
         <li>
-          <a href={instagramUrl} rel="noopener" target="_blank">
-            {t(locale, 'footer.instagram')} <span class="site-footer__handle">{instagramHandle}</span>
+          <a class="site-footer__link" href={instagramUrl} rel="noopener" target="_blank">
+            <span class="site-footer__label">{t(locale, 'footer.instagram')}</span>
+            <span>@{handle}</span>
+            <span class="visually-hidden">{t(locale, 'contact.newTab')}</span>
           </a>
         </li>
       </ul>
     </div>
 
-    <nav class="site-footer__legal" aria-label={t(locale, 'a11y.footerNav')}>
-      <ul role="list">
-        <li><a href={localizedPath('legalNotice', locale)}>{t(locale, 'footer.legalNotice')}</a></li>
-        <li><a href={localizedPath('privacy', locale)}>{t(locale, 'footer.privacy')}</a></li>
-        <li><a href={localizedPath('cookies', locale)}>{t(locale, 'footer.cookies')}</a></li>
-      </ul>
-    </nav>
-
-    <p class="site-footer__copy">© {year} Isabela Studio. {t(locale, 'footer.rights')}</p>
+    <div class="site-footer__bottom">
+      <p class="site-footer__copy">© {year} {siteName}. {t(locale, 'footer.rights')}</p>
+      <nav class="site-footer__legal" aria-label={t(locale, 'a11y.footerNav')}>
+        <ul role="list">
+          {
+            legal.map((l) => (
+              <li>
+                <a href={l.href}>{l.label}</a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </div>
   </div>
 </footer>
 
 <style>
   .site-footer {
-    margin-block-start: var(--space-3xl);
+    margin-block-start: var(--space-xl);
     border-block-start: var(--border-hairline);
-    font-size: var(--step--1);
   }
 
   .site-footer__inner {
     display: grid;
-    gap: var(--space-l);
-    width: min(100% - 2 * var(--gutter), var(--container-max));
+    gap: var(--space-xl);
+    inline-size: min(100% - 2 * var(--gutter), var(--container-max));
     margin-inline: auto;
-    padding-block: var(--space-xl) var(--space-l);
-  }
-
-  .site-footer ul {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2xs);
+    padding-block: var(--space-2xl) var(--space-m);
   }
 
   .site-footer a {
     text-decoration: none;
   }
 
-  .site-footer a:hover {
+  /* ---------- Firma ---------- */
+  .site-footer__brand {
+    display: grid;
+    gap: var(--space-2xs);
+  }
+
+  .site-footer__name {
+    justify-self: start;
+    font-family: var(--font-display);
+    font-size: var(--step-5);
+    line-height: var(--leading-tight);
+    letter-spacing: -0.02em;
+  }
+
+  .site-footer__name:hover {
+    color: inherit;
+  }
+
+  .site-footer__tagline {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-style: italic;
+    color: var(--color-text-muted);
+  }
+
+  /* ---------- Contacto ---------- */
+  .site-footer__heading {
+    margin-block-end: var(--space-s);
+    font-family: var(--font-body);
+    color: var(--color-text-muted);
+  }
+
+  .site-footer__contact ul {
+    display: grid;
+    gap: var(--space-2xs);
+  }
+
+  .site-footer__link {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 0.5em;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: var(--leading-snug);
+    overflow-wrap: anywhere;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: 0% 1px;
+    transition:
+      background-size var(--duration-slow) var(--ease-out),
+      color var(--duration-fast) var(--ease-out);
+  }
+
+  .site-footer__link:is(:hover, :focus-visible) {
+    color: inherit;
+    background-size: 100% 1px;
+  }
+
+  .site-footer__label {
+    font-family: var(--font-body);
+    font-size: var(--step--1);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  /* ---------- Línea final: © y legales ---------- */
+  .site-footer__bottom {
+    display: grid;
+    gap: var(--space-s);
+    padding-block-start: var(--space-m);
+    border-block-start: var(--border-hairline);
+    font-size: var(--step--1);
+    color: var(--color-text-muted);
+  }
+
+  .site-footer__legal ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs) var(--space-m);
+  }
+
+  .site-footer__legal a {
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+
+  .site-footer__legal a:hover {
+    color: var(--color-text);
     text-decoration: underline;
-  }
-
-  .site-footer__contact .eyebrow {
-    margin-block-end: var(--space-xs);
-    color: var(--color-text-muted);
-  }
-
-  .site-footer__handle {
-    color: var(--color-text-muted);
-  }
-
-  .site-footer__copy {
-    color: var(--color-text-muted);
   }
 
   @media (min-width: 48em) {
     .site-footer__inner {
-      grid-template-columns: 1fr auto;
-      align-items: end;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: var(--gutter);
+      row-gap: var(--space-2xl);
     }
 
-    .site-footer__legal ul {
-      flex-direction: row;
-      gap: var(--space-m);
+    .site-footer__brand {
+      grid-column: 1 / span 7;
+      align-self: end;
     }
 
-    .site-footer__copy {
+    .site-footer__contact {
+      grid-column: 9 / -1;
+      align-self: end;
+    }
+
+    .site-footer__bottom {
       grid-column: 1 / -1;
+      grid-template-columns: 1fr auto;
+      align-items: baseline;
     }
   }
 </style>
