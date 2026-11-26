@@ -21,7 +21,7 @@ import StepsBlock from './StepsBlock.astro';
 import LookbookGallery from './LookbookGallery.astro';
 import CtaBlock from './CtaBlock.astro';
 import Lightbox from '../lightbox/Lightbox.astro';
-import { hasImage } from './layout';
+import { hasImage, stepsAnchors } from './layout';
 import type { Locale, ModularBlock } from '../../lib/sanity/types';
 
 interface Props {
@@ -71,6 +71,8 @@ const zoomable = (b: ModularBlock): boolean => {
   }
 };
 const zoom = lightbox;
+// Los pasos de cada línea llevan ancla (`#pret-a-porter`, `#flamenca`) para índices en la página.
+const anchors = stepsAnchors(items.map(({ block }) => block));
 const needsViewer = lightbox && items.some(({ block }) => zoomable(block));
 ---
 
@@ -90,7 +92,9 @@ const needsViewer = lightbox && items.some(({ block }) => zoomable(block));
             <LookbookGallery block={block} locale={locale} level={level} zoom={zoom} />
           )}
           {block._type === 'videoBlock' && <VideoBlock block={block} locale={locale} />}
-          {block._type === 'stepsBlock' && <StepsBlock block={block} locale={locale} level={level} />}
+          {block._type === 'stepsBlock' && (
+            <StepsBlock block={block} locale={locale} level={level} id={anchors.get(block._key)} />
+          )}
           {block._type === 'ctaBlock' && <CtaBlock block={block} locale={locale} />}
         </div>
       ))}

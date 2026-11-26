@@ -606,7 +606,19 @@
 
 /* ---------- Pasos ---------- */
 .b-steps {
+  --steps-num-col: 3rem;
+  --steps-num-size: var(--step-3);
   row-gap: var(--space-xl);
+}
+
+/* Dos procesos seguidos (p. ej. prêt-à-porter y flamenca): se leen como dos apartados. */
+.block[data-block='stepsBlock'] + .block[data-block='stepsBlock'] {
+  margin-block-start: var(--space-3xl);
+}
+
+.block[data-block='stepsBlock'] + .block[data-block='stepsBlock'] .b-steps {
+  padding-block-start: var(--space-xl);
+  border-block-start: var(--border-hairline);
 }
 
 .b-steps__variant {
@@ -615,7 +627,9 @@
 }
 
 .b-steps__title {
-  font-size: var(--step-4);
+  font-size: var(--step-5);
+  font-style: italic;
+  letter-spacing: -0.02em;
   text-wrap: balance;
 }
 
@@ -629,41 +643,71 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  border-block-start: var(--border-hairline);
 }
 
 .b-steps__item {
+  position: relative;
   display: grid;
-  grid-template-columns: 3.5rem minmax(0, 1fr);
-  gap: var(--space-s);
-  padding-block: var(--space-m);
-  border-block-end: var(--border-hairline);
+  grid-template-columns: var(--steps-num-col) minmax(0, 1fr);
+  column-gap: var(--space-s);
+  padding-block-end: var(--space-l);
+}
+
+.b-steps__item:last-child {
+  padding-block-end: 0;
+}
+
+/* Pespunte: una línea discontinua cose cada número con el siguiente. */
+.b-steps__item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  inset-block: calc(var(--steps-num-size) + var(--space-xs)) var(--space-xs);
+  inset-inline-start: calc(var(--steps-num-col) / 2);
+  inline-size: 1px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    color-mix(in oklch, var(--color-accent) 55%, transparent) 0 4px,
+    transparent 4px 9px
+  );
 }
 
 .b-steps__num {
   font-family: var(--font-display);
-  font-size: var(--step-3);
+  font-size: var(--steps-num-size);
+  font-style: italic;
   font-variant-numeric: lining-nums tabular-nums;
   line-height: 1;
+  text-align: center;
   color: var(--color-accent);
 }
 
+.b-steps__body {
+  /* Alinea el título del paso con la línea base del número. */
+  padding-block-start: calc(var(--steps-num-size) * 0.18);
+}
+
 .b-steps__step-title {
-  font-size: var(--step-1);
+  font-size: var(--step-2);
   line-height: var(--leading-snug);
 }
 
 .b-steps__text {
-  max-inline-size: 48ch;
-  margin-block-start: var(--space-2xs);
+  max-inline-size: 42ch;
+  margin-block-start: var(--space-3xs);
   color: var(--color-text-muted);
+  text-wrap: pretty;
 }
 
 @container block (min-width: 48rem) {
+  .b-steps {
+    --steps-num-col: 5rem;
+    --steps-num-size: var(--step-4);
+  }
+
   .b-steps__head {
     grid-column: 1 / span 4;
     position: sticky;
-    inset-block-start: var(--space-xl);
+    inset-block-start: calc(var(--header-height) + var(--space-l));
   }
 
   .b-steps__list {
@@ -675,11 +719,8 @@
   }
 
   .b-steps__item {
-    grid-template-columns: 6rem minmax(0, 1fr);
-  }
-
-  .b-steps__num {
-    font-size: var(--step-4);
+    column-gap: var(--space-m);
+    padding-block-end: var(--space-xl);
   }
 }
 
