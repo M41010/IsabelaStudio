@@ -1,0 +1,369 @@
+---
+/**
+ * Maqueta de lectura para los textos legales (aviso legal, privacidad, cookies).
+ * Sobria a propósito: medida de lectura estrecha, secciones h2 numeradas en un índice
+ * («En esta página», fijo al lado en escritorio), línea de última actualización y enlaces
+ * a los otros textos legales al final.
+ *
+ * El contenido es el cuerpo modular de la página: los `textBlock` se pintan como prosa
+ * (sus subtítulos h2 llevan ancla); cualquier otro bloque se delega en BlockRenderer.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import BlockRenderer from '../blocks/BlockRenderer.astro';
+import LegalHeading from './LegalHeading.astro';
+import { PortableText, toPlainText } from 'astro-portabletext';
+import { anchorId } from './anchor';
+import { localizedPath, pickLocale, t, type Locale, type UiKey } from '../../i18n/utils';
+import { formatDate, isoDate } from '../../lib/format';
+import type { PageDoc } from '../../lib/sanity/types';
+
+type LegalRoute = 'legalNotice' | 'privacy' | 'cookies';
+
+interface Props {
+  page: PageDoc | null | undefined;
+  locale: Locale;
+  route: LegalRoute;
+  /** Título de respaldo si la página aún no existe en Sanity. */
+  titleKey: UiKey;
+}
+
+const { page, locale, route, titleKey } = Astro.props;
+
+const title = pickLocale(page?.title, locale) ?? t(locale, titleKey);
+const intro = pickLocale(page?.intro, locale);
+const description = pickLocale(page?.seo?.description, locale) ?? intro;
+const seoTitle = pickLocale(page?.seo?.title, locale) ?? title;
+const updatedLabel = formatDate(page?._updatedAt, locale);
+
+// Índice: los títulos de sección (eyebrow del bloque y subtítulos h2), con anclas únicas.
+const toc: { id: string; label: string }[] = [];
+const usedIds = new Set<string>();
+function addToc(label: string): string {
+  const base = anchorId(label);
+  let id = base;
+  for (let n = 2; usedIds.has(id); n++) id = `${base}-${n}`;
+  usedIds.add(id);
+  toc.push({ id, label });
+  return id;
+}
+
+const body = page?.body ?? [];
+const sections = body.map((block) => {
+  if (block._type !== 'textBlock') return { kind: 'other' as const, block };
+  const eyebrow = pickLocale(block.eyebrow, locale);
+  const eyebrowId = eyebrow ? addToc(eyebrow) : undefined;
+  // Copia de los bloques con el ancla de cada h2 (la lee LegalHeading).
+  const content = (pickLocale(block.body, locale) ?? []).map((b) => {
+    if (b._type !== 'block' || b.style !== 'h2') return b;
+    const label = toPlainText(b);
+    return label ? { ...b, _anchor: addToc(label) } : b;
+  });
+  return { kind: 'text' as const, block, eyebrow, eyebrowId, content };
+});
+const showToc = toc.length >= 3;
+const hasContent = sections.some((s) => s.kind === 'other' || s.eyebrow || s.content.length > 0);
+
+const related = (
+  [
+    ['legalNotice', 'footer.legalNotice'],
+    ['privacy', 'footer.privacy'],
+    ['cookies', 'footer.cookies'],
+  ] as const
+).filter(([key]) => key !== route);
+---
+
+<BaseLayout locale={locale} title={seoTitle} description={description}>
+  <article class="legal">
+    <header class="legal__header">
+      <h1 class="legal__title" data-reveal>{title}</h1>
+      {intro && <p class="legal__intro">{intro}</p>}
+      {
+        updatedLabel && (
+          <p class="legal__updated">
+            {t(locale, 'legal.updated')}
+            <span aria-hidden="true"> · </span>
+            <span class="visually-hidden">: </span>
+            <time datetime={isoDate(page?._updatedAt)}>{updatedLabel}</time>
+          </p>
+        )
+      }
+    </header>
+
+    <div class:list={['legal__layout', { 'legal__layout--toc': showToc }]}>
+      {
+        showToc && (
+          <nav class="legal__toc" aria-labelledby="legal-toc-label">
+            <p class="legal__toc-label eyebrow" id="legal-toc-label">
+              {t(locale, 'legal.toc')}
+            </p>
+            <ol class="legal__toc-list" role="list">
+              {toc.map((item) => (
+                <li>
+                  <a href={`#${item.id}`}>{item.label}</a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        )
+      }
+
+      <div class="legal__body">
+        {
+          hasContent ? (
+            sections.map((s) =>
+              s.kind === 'text' ? (
+                <section class="legal__section">
+                  {s.eyebrow && <h2 id={s.eyebrowId}>{s.eyebrow}</h2>}
+                  {s.content.length > 0 && <PortableText value={s.content} components={{ block: { h2: LegalHeading } }} />}
+                </section>
+              ) : (
+                <BlockRenderer blocks={[s.block]} locale={locale} />
+              ),
+            )
+          ) : (
+            <p class="legal__pending">{t(locale, 'page.legal.placeholder')}</p>
+          )
+        }
+
+        <nav class="legal__related" aria-labelledby="legal-related-label">
+          <p class="eyebrow legal__related-label" id="legal-related-label">
+            {t(locale, 'legal.related')}
+          </p>
+          <ul role="list">
+            {
+              related.map(([key, label]) => (
+                <li>
+                  <a href={localizedPath(key, locale)}>{t(locale, label)}</a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .legal {
+    width: min(100% - 2 * var(--gutter), var(--container-wide));
+    margin-inline: auto;
+    padding-block: var(--space-xl) var(--space-3xl);
+  }
+
+  /* ---------- Cabecera ---------- */
+  .legal__header {
+    display: grid;
+    gap: var(--space-s);
+    padding-block-end: var(--space-l);
+    margin-block-end: var(--space-xl);
+    border-block-end: 1px solid var(--color-text);
+  }
+
+  .legal__title {
+    max-width: 14ch;
+    font-size: clamp(2.6rem, 1.6rem + 4.4vw, 6rem);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  .legal__intro {
+    max-width: 40ch;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: var(--leading-snug);
+    color: var(--color-text-muted);
+  }
+
+  .legal__updated {
+    font-size: var(--step--1);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .legal__updated time {
+    font-variant-numeric: lining-nums;
+  }
+
+  /* ---------- Retícula: índice + texto ---------- */
+  .legal__layout {
+    display: grid;
+    gap: var(--space-xl);
+  }
+
+  @media (min-width: 64em) {
+    .legal__layout {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: var(--space-m);
+      align-items: start;
+    }
+
+    .legal__body {
+      grid-column: 4 / span 7;
+    }
+
+    .legal__layout--toc .legal__body {
+      grid-column: 5 / span 7;
+    }
+
+    .legal__toc {
+      grid-column: 1 / span 3;
+      position: sticky;
+      inset-block-start: calc(var(--header-height) + var(--space-m));
+    }
+  }
+
+  /* ---------- Índice «En esta página» ---------- */
+  .legal__toc-label {
+    margin-block-end: var(--space-xs);
+    color: var(--color-text-muted);
+  }
+
+  .legal__toc-list {
+    counter-reset: toc;
+    border-block-start: var(--border-hairline);
+  }
+
+  .legal__toc-list li {
+    counter-increment: toc;
+    border-block-end: var(--border-hairline);
+  }
+
+  .legal__toc-list a {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    align-items: baseline;
+    padding-block: 0.6rem;
+    font-size: var(--step--1);
+    line-height: var(--leading-snug);
+    text-decoration: none;
+  }
+
+  .legal__toc-list a::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-variant-numeric: lining-nums tabular-nums;
+    color: var(--color-text-muted);
+  }
+
+  /* ---------- Texto ---------- */
+  .legal__body {
+    max-inline-size: var(--container-text);
+    min-inline-size: 0;
+  }
+
+  .legal__body :global(:is(p, ul, ol) + :is(p, ul, ol)) {
+    margin-block-start: 1em;
+  }
+
+  .legal__body :global(p) {
+    text-wrap: pretty;
+    overflow-wrap: break-word;
+  }
+
+  .legal__body :global(h2) {
+    margin-block: var(--space-xl) var(--space-s);
+    padding-block-start: var(--space-s);
+    border-block-start: var(--border-hairline);
+    font-size: var(--step-3);
+    line-height: var(--leading-snug);
+    text-wrap: balance;
+    scroll-margin-block-start: calc(var(--header-height) + var(--space-m));
+  }
+
+  .legal__body :global(h3) {
+    margin-block: var(--space-m) var(--space-2xs);
+    font-size: var(--step-1);
+    font-style: italic;
+  }
+
+  .legal__body :global(h2 + h3) {
+    margin-block-start: var(--space-s);
+  }
+
+  .legal__section:first-child > :global(:first-child) {
+    margin-block-start: 0;
+  }
+
+  .legal__body :global(ul) {
+    padding: 0;
+    list-style: none;
+  }
+
+  .legal__body :global(ul > li) {
+    position: relative;
+    padding-inline-start: 1.5em;
+  }
+
+  .legal__body :global(ul > li + li) {
+    margin-block-start: 0.4em;
+  }
+
+  .legal__body :global(ul > li)::before {
+    content: '—';
+    position: absolute;
+    inset-inline-start: 0;
+    color: var(--color-text-muted);
+  }
+
+  .legal__body :global(ol) {
+    padding-inline-start: 1.5em;
+  }
+
+  .legal__body :global(strong) {
+    font-weight: 600;
+  }
+
+  .legal__body :global(a) {
+    text-decoration-color: var(--color-line);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  .legal__body :global(a:hover) {
+    text-decoration-color: currentColor;
+  }
+
+  .legal__pending {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-style: italic;
+    color: var(--color-text-muted);
+  }
+
+  /* ---------- Otros textos legales ---------- */
+  .legal__related {
+    display: grid;
+    gap: var(--space-xs);
+    margin-block-start: var(--space-2xl);
+    padding-block-start: var(--space-s);
+    border-block-start: 1px solid var(--color-text);
+  }
+
+  .legal__related-label {
+    color: var(--color-text-muted);
+  }
+
+  .legal__related ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs) var(--space-l);
+    padding: 0;
+    list-style: none;
+  }
+
+  .legal__related a {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    text-decoration: none;
+  }
+
+  .legal__related a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+</style>

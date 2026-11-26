@@ -1,0 +1,14 @@
+---
+/**
+ * h2 del texto legal con ancla, para el índice «En esta página».
+ * El id lo calcula LegalPage (sin duplicados) y lo deja en `node._anchor`.
+ */
+import type { BlockProps } from 'astro-portabletext/types';
+
+type Props = BlockProps;
+
+const { node } = Astro.props;
+const id = (node as { _anchor?: string })._anchor;
+---
+
+<h2 id={id}><slot /></h2>
