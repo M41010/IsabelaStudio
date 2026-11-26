@@ -6,6 +6,7 @@
  */
 import type { PortableTextBlock } from '@portabletext/types';
 import manifest from './fixtures-manifest.json';
+import { legalMarkupToPortableText, legalTexts, type LegalPageId } from './legal-texts';
 import type {
   CollectionDetail,
   CtaBlock,
@@ -308,21 +309,29 @@ const steps = (variant: 'pret-a-porter' | 'flamenca'): ModularBlock => ({
   ].map(([te, tn, xe, xn]) => ({ _key: key(), title: { es: te, en: tn }, text: { es: xe, en: xn } })),
 });
 
-const legal = (id: PageId, es: string, en: string): PageDoc => ({
-  _id: id,
-  title: { es, en },
-  intro: null,
-  body: [
-    {
-      _type: 'textBlock',
-      _key: key(),
-      width: 'narrow',
-      eyebrow: null,
-      body: rich(['[PENDIENTE: datos del titular y texto legal definitivo]'], ['[PENDING: owner details and final legal text]']),
-    },
-  ],
-  seo: null,
-});
+/** Páginas legales: los borradores de `legal-texts.ts` (los mismos que carga el seed). */
+const legal = (id: LegalPageId): PageDoc => {
+  const text = legalTexts[id];
+  return {
+    _id: id,
+    _updatedAt: '2026-11-26T09:00:00Z',
+    title: text.title,
+    intro: null,
+    body: [
+      {
+        _type: 'textBlock',
+        _key: key(),
+        width: 'narrow',
+        eyebrow: null,
+        body: {
+          es: legalMarkupToPortableText(text.es, key) as PortableTextBlock[],
+          en: legalMarkupToPortableText(text.en, key) as PortableTextBlock[],
+        },
+      },
+    ],
+    seo: null,
+  };
+};
 
 export const fixturePages: Record<PageId, PageDoc> = {
   about: {
@@ -364,10 +373,65 @@ export const fixturePages: Record<PageId, PageDoc> = {
     body: [steps('pret-a-porter'), steps('flamenca'), cta],
     seo: null,
   },
-  'legal-notice': legal('legal-notice', 'Aviso legal', 'Legal notice'),
-  privacy: legal('privacy', 'Política de privacidad', 'Privacy policy'),
-  cookies: legal('cookies', 'Política de cookies', 'Cookie policy'),
+  'legal-notice': legal('legal-notice'),
+  privacy: legal('privacy'),
+  cookies: legal('cookies'),
 };
 
-/** Sin entradas: así se prueba que "Prensa" se oculta del menú. */
-export const fixturePressItems: PressItem[] = [];
+/** Logo de un medio: imagen simple, sin alt (la web pone el nombre del medio como texto). */
+function outletLogo(name: FixtureName): SanityImage {
+  const m = manifest[name];
+  return {
+    asset: {
+      _id: `fixture-${name}`,
+      url: m.url,
+      metadata: { lqip: m.lqip, dimensions: { width: m.width, height: m.height, aspectRatio: m.width / m.height } },
+    },
+    hotspot: null,
+    crop: null,
+  };
+}
+
+/**
+ * Apariciones en prensa de ejemplo (medios inventados), en el orden de la consulta:
+ * las más recientes primero. Con entradas, «Prensa» aparece en el menú; para probar el
+ * estado vacío (y el menú sin «Prensa»), deja este array vacío.
+ */
+export const fixturePressItems: PressItem[] = [
+  {
+    _id: 'press-volante',
+    outlet: 'Revista Volante',
+    headline: {
+      es: 'Teresita Ortiz y el traje de flamenca que respira',
+      en: 'Teresita Ortiz and the flamenca dress that breathes',
+    },
+    date: '2026-10-14',
+    logo: outletLogo('press-logo-volante'),
+    url: 'https://example.com/revista-volante/teresita-ortiz',
+    pdfUrl: null,
+  },
+  {
+    _id: 'press-diario-del-patio',
+    outlet: 'Diario del Patio',
+    headline: {
+      es: 'Cinco diseñadoras que están cambiando la moda flamenca',
+      en: 'Five designers who are changing flamenca fashion',
+    },
+    date: '2026-04-02',
+    logo: null,
+    url: null,
+    pdfUrl: '/fixtures/prensa-diario-del-patio.pdf',
+  },
+  {
+    _id: 'press-hilo-y-aguja',
+    outlet: 'Hilo & Aguja',
+    headline: {
+      es: 'Entrevista: «Coser es la forma más lenta de pensar»',
+      en: 'Interview: “Sewing is the slowest way of thinking”',
+    },
+    date: '2025-12-09',
+    logo: null,
+    url: 'https://example.com/hilo-y-aguja/entrevista-isabela-studio',
+    pdfUrl: null,
+  },
+];
