@@ -317,8 +317,15 @@ const isEmpty = items.length === 0;
       grid-template-columns: repeat(12, minmax(0, 1fr));
       grid-template-areas: none;
       column-gap: var(--space-m);
-      align-items: baseline;
+      align-items: start;
       padding-block: var(--space-l);
+    }
+
+    /* Las columnas pequeñas se alinean con la primera línea del titular. */
+    .press-item__date,
+    .press-item__outlet,
+    .press-item__action {
+      margin-block-start: calc(var(--step-4) * 0.32);
     }
 
     .press-item__date {
@@ -329,12 +336,16 @@ const isEmpty = items.length === 0;
     .press-item__outlet {
       grid-column: 3 / span 2;
       grid-row: 1;
-      align-self: center;
+    }
+
+    .press-item__outlet :global(.press-item__logo) {
+      margin-block-start: -0.35rem;
     }
 
     .press-item__headline {
       grid-column: 5 / span 6;
       grid-row: 1;
+      max-inline-size: 22em;
       margin: 0;
       font-size: var(--step-4);
     }
