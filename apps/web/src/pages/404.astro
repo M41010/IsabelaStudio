@@ -74,7 +74,7 @@ const langs: { locale: Locale; heading: 'h1' | 'h2' }[] = [
     justify-content: space-between;
     margin-inline: -0.04em;
     font-family: var(--font-display);
-    font-size: clamp(9rem, 2rem + 38vw, 30rem);
+    font-size: clamp(9rem, 2rem + 36vw, 26rem);
     font-weight: 300;
     font-variant-numeric: lining-nums;
     line-height: 0.8;
@@ -87,7 +87,7 @@ const langs: { locale: Locale; heading: 'h1' | 'h2' }[] = [
   .not-found__zero {
     font-style: italic;
     color: transparent;
-    -webkit-text-stroke: 1px var(--color-accent);
+    -webkit-text-stroke: max(1px, 0.008em) var(--color-accent);
     transform: translateY(0.08em);
   }
 
