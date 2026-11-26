@@ -79,8 +79,10 @@ const LOGOS = [
 
 for (const [name, w, h, inner] of LOGOS) {
   const buf = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">${inner}</svg>`);
-  await sharp(buf).png().toFile(new URL(`${name}.png`, OUT).pathname.replace(/^\/([A-Z]:)/, '$1'));
-  manifest[name] = { url: `/fixtures/${name}.png`, width: w, height: h, lqip: null };
+  // Sin márgenes transparentes, como debería subirse un logo.
+  const { data, info } = await sharp(buf).trim().png().toBuffer({ resolveWithObject: true });
+  await writeFile(new URL(`${name}.png`, OUT), data);
+  manifest[name] = { url: `/fixtures/${name}.png`, width: info.width, height: info.height, lqip: null };
 }
 
 await writeFile(MANIFEST, JSON.stringify(manifest, null, 2) + '\n');
