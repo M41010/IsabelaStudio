@@ -1,16 +1,160 @@
 ---
+/**
+ * Sobre mí: apertura editorial tranquila (antetítulo, gran título y una entradilla en
+ * primera persona, como el pie de un retrato), los tres oficios que Teresita reúne en
+ * cada pieza y, después, su historia por bloques. Termina en la llamada a contactar.
+ * Sin visor: aquí las fotos acompañan el relato, no se inspeccionan.
+ * Si el documento `about` no existe, se pinta la apertura con los textos de i18n.
+ */
 import BaseLayout from '../layouts/BaseLayout.astro';
-import PagePlaceholder from '../components/PagePlaceholder.astro';
-import { t, type Locale } from '../i18n/utils';
+import BlockRenderer from '../components/blocks/BlockRenderer.astro';
+import ContactCta from '../components/contact/ContactCta.astro';
+import { pad2 } from '../components/blocks/layout';
+import { pickLocale, t, type Locale } from '../i18n/utils';
+import { getPage } from '../lib/sanity/api';
 
 interface Props {
   locale: Locale;
 }
 
 const { locale } = Astro.props;
-const title = t(locale, 'page.about.title');
+const page = await getPage('about');
+
+const title = pickLocale(page?.title, locale) || t(locale, 'page.about.title');
+const intro = pickLocale(page?.intro, locale) || t(locale, 'page.about.intro');
+const body = page?.body ?? [];
+const endsInCta = body.some((b) => b?._type === 'ctaBlock');
+
+const seoTitle = pickLocale(page?.seo?.title, locale) || title;
+const seoDescription = pickLocale(page?.seo?.description, locale) || intro;
+
+const crafts = [t(locale, 'about.craftDesign'), t(locale, 'about.craftPattern'), t(locale, 'about.craftSewing')];
 ---
 
-<BaseLayout locale={locale} title={title}>
-  <PagePlaceholder title={title} intro={t(locale, 'page.about.intro')} />
+<BaseLayout locale={locale} title={seoTitle} description={seoDescription}>
+  <article class="about">
+    <header class="about-hero">
+      <p class="about-hero__eyebrow eyebrow">{t(locale, 'about.eyebrow')}</p>
+      <h1 class="about-hero__title" data-reveal>{title}</h1>
+      <p class="about-hero__intro" data-reveal>{intro}</p>
+      <div class="about-hero__crafts" data-reveal>
+        <ol role="list" aria-label={t(locale, 'about.craftsLabel')}>
+          {
+            crafts.map((craft, i) => (
+              <li>
+                <span class="about-hero__num" aria-hidden="true">
+                  {pad2(i + 1)}
+                </span>
+                <span>{craft}</span>
+              </li>
+            ))
+          }
+        </ol>
+      </div>
+    </header>
+
+    <BlockRenderer blocks={body} locale={locale} class="about-story" />
+
+    {!endsInCta && <ContactCta cta={null} locale={locale} />}
+  </article>
 </BaseLayout>
+
+<style>
+  .about-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    inline-size: min(100% - 2 * var(--gutter), var(--container-max));
+    margin-inline: auto;
+    padding-block: var(--space-l) var(--space-2xl);
+  }
+
+  .about-hero__eyebrow {
+    color: var(--color-text-muted);
+  }
+
+  .about-hero__title {
+    margin-block: var(--space-xs) var(--space-l);
+    font-size: clamp(3.5rem, 2rem + 9vw, 10rem);
+    line-height: 0.92;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+  }
+
+  /* Entradilla en primera persona: grande, en serif y algo desplazada, como un pie de retrato. */
+  .about-hero__intro {
+    max-inline-size: 22ch;
+    margin-inline-start: calc(100% / 6);
+    font-family: var(--font-display);
+    font-size: var(--step-3);
+    line-height: var(--leading-snug);
+    letter-spacing: -0.01em;
+    text-wrap: pretty;
+  }
+
+  .about-hero__crafts {
+    margin-block-start: var(--space-xl);
+    margin-inline-start: calc(100% / 6);
+  }
+
+  .about-hero__crafts ol {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-xs);
+    padding-block-start: var(--space-s);
+    border-block-start: var(--border-hairline);
+  }
+
+  .about-hero__crafts li {
+    display: grid;
+    gap: var(--space-3xs);
+    font-size: var(--step--1);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+  }
+
+  .about-hero__num {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-style: italic;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--color-accent);
+  }
+
+  @media (min-width: 48em) {
+    .about-hero {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      grid-template-areas:
+        'eyebrow eyebrow eyebrow eyebrow eyebrow eyebrow eyebrow . . . . .'
+        'title title title title title title title . intro intro intro intro'
+        'title title title title title title title . crafts crafts crafts crafts';
+      column-gap: var(--gutter);
+      align-items: end;
+      padding-block-start: var(--space-xl);
+    }
+
+    .about-hero__eyebrow {
+      grid-area: eyebrow;
+    }
+
+    .about-hero__title {
+      grid-area: title;
+      align-self: end;
+      margin-block-end: 0;
+      font-size: clamp(4rem, 1rem + 8vw, 11rem);
+    }
+
+    .about-hero__intro {
+      grid-area: intro;
+      margin-inline-start: 0;
+    }
+
+    .about-hero__crafts {
+      grid-area: crafts;
+      margin-inline-start: 0;
+      margin-block-start: var(--space-l);
+    }
+  }
+</style>
