@@ -81,5 +81,19 @@
   "contact.channelsLabel": "Ways to get in touch",
   "contact.byEmail": "By email",
   "contact.onInstagram": "On Instagram",
-  "contact.newTab": "(opens in a new tab)"
+  "contact.newTab": "(opens in a new tab)",
+  "press.eyebrow": "As seen in",
+  "press.listLabel": "Press coverage",
+  "press.readArticle": "Read the article",
+  "press.readPdf": "Read the PDF",
+  "press.newTab": "(opens in a new tab)",
+  "press.pdfNewTab": "(PDF, opens in a new tab)",
+  "press.empty": "Press coverage, coming soon.",
+  "press.emptyNote": "In the meantime, the story continues in the collections.",
+  "legal.updated": "Last updated",
+  "legal.toc": "On this page",
+  "legal.related": "Legal",
+  "404.eyebrow": "Error 404",
+  "404.headline": "This page has come unstitched",
+  "404.suggestions": "You can carry on from here"
 }

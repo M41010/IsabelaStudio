@@ -81,5 +81,19 @@
   "contact.channelsLabel": "Formas de contacto",
   "contact.byEmail": "Por email",
   "contact.onInstagram": "En Instagram",
-  "contact.newTab": "(se abre en una pestaña nueva)"
+  "contact.newTab": "(se abre en una pestaña nueva)",
+  "press.eyebrow": "Visto en",
+  "press.listLabel": "Apariciones en prensa",
+  "press.readArticle": "Leer artículo",
+  "press.readPdf": "Leer en PDF",
+  "press.newTab": "(se abre en una pestaña nueva)",
+  "press.pdfNewTab": "(PDF, se abre en una pestaña nueva)",
+  "press.empty": "Pronto, las primeras apariciones en prensa.",
+  "press.emptyNote": "Mientras tanto, la historia continúa en las colecciones.",
+  "legal.updated": "Última actualización",
+  "legal.toc": "En esta página",
+  "legal.related": "Textos legales",
+  "404.eyebrow": "Error 404",
+  "404.headline": "Esta página se ha descosido",
+  "404.suggestions": "Puedes seguir por aquí"
 }
