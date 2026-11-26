@@ -34,8 +34,10 @@ const crafts = [t(locale, 'about.craftDesign'), t(locale, 'about.craftPattern'),
 <BaseLayout locale={locale} title={seoTitle} description={seoDescription}>
   <article class="about">
     <header class="about-hero">
-      <p class="about-hero__eyebrow eyebrow">{t(locale, 'about.eyebrow')}</p>
-      <h1 class="about-hero__title" data-reveal>{title}</h1>
+      <div class="about-hero__heading">
+        <p class="about-hero__eyebrow eyebrow">{t(locale, 'about.eyebrow')}</p>
+        <h1 class="about-hero__title" data-reveal>{title}</h1>
+      </div>
       <p class="about-hero__intro" data-reveal>{intro}</p>
       <div class="about-hero__crafts" data-reveal>
         <ol role="list" aria-label={t(locale, 'about.craftsLabel')}>
@@ -94,13 +96,13 @@ const crafts = [t(locale, 'about.craftDesign'), t(locale, 'about.craftPattern'),
 
   .about-hero__crafts {
     margin-block-start: var(--space-xl);
-    margin-inline-start: calc(100% / 6);
   }
 
   .about-hero__crafts ol {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--space-xs);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-s) var(--space-m);
     padding-block-start: var(--space-s);
     border-block-start: var(--border-hairline);
   }
@@ -111,7 +113,6 @@ const crafts = [t(locale, 'about.craftDesign'), t(locale, 'about.craftPattern'),
     font-size: var(--step--1);
     letter-spacing: var(--tracking-caps);
     text-transform: uppercase;
-    overflow-wrap: anywhere;
   }
 
   .about-hero__num {
@@ -127,21 +128,18 @@ const crafts = [t(locale, 'about.craftDesign'), t(locale, 'about.craftPattern'),
     .about-hero {
       grid-template-columns: repeat(12, minmax(0, 1fr));
       grid-template-areas:
-        'eyebrow eyebrow eyebrow eyebrow eyebrow eyebrow eyebrow . . . . .'
-        'title title title title title title title . intro intro intro intro'
-        'title title title title title title title . crafts crafts crafts crafts';
+        'heading heading heading heading heading heading heading . intro intro intro intro'
+        'heading heading heading heading heading heading heading . crafts crafts crafts crafts';
       column-gap: var(--gutter);
       align-items: end;
       padding-block-start: var(--space-xl);
     }
 
-    .about-hero__eyebrow {
-      grid-area: eyebrow;
+    .about-hero__heading {
+      grid-area: heading;
     }
 
     .about-hero__title {
-      grid-area: title;
-      align-self: end;
       margin-block-end: 0;
       font-size: clamp(4rem, 1rem + 8vw, 11rem);
     }
