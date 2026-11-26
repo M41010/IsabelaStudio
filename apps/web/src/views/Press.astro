@@ -1,7 +1,17 @@
 ---
+/**
+ * Prensa: índice tipográfico de apariciones en medios, como el «visto en» de una revista.
+ * Cada entrada es una fila: fecha, medio (logo monocromo o nombre), titular y enlace
+ * (artículo en una pestaña nueva o PDF). Toda la fila es clicable (enlace estirado del titular).
+ *
+ * Sin entradas la página se sigue generando, con un mensaje sereno y `noindex`
+ * (y «Prensa» ya no aparece en el menú: ver `getHasPress`).
+ */
 import BaseLayout from '../layouts/BaseLayout.astro';
-import PagePlaceholder from '../components/PagePlaceholder.astro';
-import { t, type Locale } from '../i18n/utils';
+import SanityImage from '../components/media/SanityImage.astro';
+import { localizedPath, pickLocale, t, type Locale } from '../i18n/utils';
+import { getPressItems } from '../lib/sanity/api';
+import { formatDate, isoDate } from '../lib/format';
 
 interface Props {
   locale: Locale;
@@ -9,8 +19,368 @@ interface Props {
 
 const { locale } = Astro.props;
 const title = t(locale, 'page.press.title');
+const intro = t(locale, 'page.press.intro');
+
+const items = (await getPressItems())
+  .map((item) => {
+    const headline = pickLocale(item.headline, locale);
+    const href = item.url || item.pdfUrl || undefined;
+    return {
+      ...item,
+      headline,
+      // Si falta el titular en inglés se muestra el español: se marca su idioma.
+      headlineLang: headline && !item.headline?.[locale] ? 'es' : undefined,
+      href,
+      isPdf: !item.url && !!item.pdfUrl,
+      dateLabel: formatDate(item.date, locale),
+      datetime: isoDate(item.date),
+    };
+  })
+  .filter((item) => item.headline || item.outlet);
+
+const isEmpty = items.length === 0;
 ---
 
-<BaseLayout locale={locale} title={title}>
-  <PagePlaceholder title={title} intro={t(locale, 'page.press.intro')} />
+<BaseLayout locale={locale} title={title} description={intro} noindex={isEmpty}>
+  <div class="press">
+    <header class="press-header">
+      <p class="eyebrow press-header__eyebrow">{t(locale, 'press.eyebrow')}</p>
+      <h1 class="press-header__title" data-reveal>{title}</h1>
+      <p class="press-header__intro" data-reveal>{intro}</p>
+    </header>
+
+    {
+      isEmpty ? (
+        <div class="press-empty" data-reveal>
+          <p class="press-empty__text">{t(locale, 'press.empty')}</p>
+          <p class="press-empty__note">
+            {t(locale, 'press.emptyNote')}{' '}
+            <a href={localizedPath('collections', locale)}>{t(locale, 'cta.allCollections')}</a>
+          </p>
+        </div>
+      ) : (
+        <ol class="press-list" role="list" aria-label={t(locale, 'press.listLabel')}>
+          {items.map((item) => (
+            <li class="press-item" data-reveal>
+              <article class="press-item__inner">
+                <p class="press-item__date">
+                  {item.dateLabel && <time datetime={item.datetime}>{item.dateLabel}</time>}
+                </p>
+
+                <p class="press-item__outlet">
+                  {item.logo?.asset ? (
+                    <>
+                      <SanityImage
+                        image={item.logo}
+                        locale={locale}
+                        sizes="10rem"
+                        widths={[160, 320, 480]}
+                        decorative
+                        class="press-item__logo"
+                      />
+                      <span class="visually-hidden">{item.outlet}</span>
+                    </>
+                  ) : (
+                    <span class="press-item__outlet-name">{item.outlet}</span>
+                  )}
+                </p>
+
+                <h2 class="press-item__headline" lang={item.headlineLang}>
+                  {item.href ? (
+                    <a
+                      class="press-item__link"
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener"
+                      type={item.isPdf ? 'application/pdf' : undefined}
+                    >
+                      {item.headline ?? item.outlet}
+                      <span class="visually-hidden">
+                        {' '}
+                        {t(locale, item.isPdf ? 'press.pdfNewTab' : 'press.newTab')}
+                      </span>
+                    </a>
+                  ) : (
+                    (item.headline ?? item.outlet)
+                  )}
+                </h2>
+
+                {item.href && (
+                  <p class="press-item__action" aria-hidden="true">
+                    {item.isPdf ? (
+                      <>
+                        <span class="press-item__badge">PDF</span>
+                        {t(locale, 'press.readPdf')}
+                      </>
+                    ) : (
+                      t(locale, 'press.readArticle')
+                    )}
+                    <span class="press-item__arrow">↗</span>
+                  </p>
+                )}
+              </article>
+            </li>
+          ))}
+        </ol>
+      )
+    }
+  </div>
 </BaseLayout>
+
+<style>
+  .press {
+    width: min(100% - 2 * var(--gutter), var(--container-wide));
+    margin-inline: auto;
+    padding-block: var(--space-xl) var(--space-3xl);
+  }
+
+  /* ---------- Cabecera (mismo lenguaje que el índice de colecciones) ---------- */
+  .press-header {
+    display: grid;
+    gap: var(--space-s);
+    padding-block-end: var(--space-xl);
+  }
+
+  .press-header__eyebrow {
+    color: var(--color-text-muted);
+  }
+
+  .press-header__title {
+    font-size: clamp(3rem, 1.4rem + 7vw, 9rem);
+    line-height: 0.9;
+    letter-spacing: -0.025em;
+  }
+
+  .press-header__intro {
+    max-width: 30ch;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: var(--leading-snug);
+    color: var(--color-text-muted);
+  }
+
+  @media (min-width: 48em) {
+    .press-header {
+      grid-template-columns: repeat(12, 1fr);
+      column-gap: var(--space-m);
+      align-items: end;
+    }
+
+    .press-header__eyebrow,
+    .press-header__title {
+      grid-column: 1 / span 8;
+    }
+
+    .press-header__intro {
+      grid-column: 9 / -1;
+      grid-row: 2;
+      padding-block-end: 0.6em;
+    }
+  }
+
+  /* ---------- Índice ---------- */
+  .press-list {
+    border-block-start: 1px solid var(--color-text);
+  }
+
+  .press-item {
+    border-block-end: var(--border-hairline);
+  }
+
+  .press-item__inner {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'outlet date'
+      'headline headline'
+      'action action';
+    align-items: center;
+    gap: var(--space-xs) var(--space-s);
+    padding-block: var(--space-m) var(--space-l);
+  }
+
+  .press-item__date {
+    grid-area: date;
+    font-size: var(--step--1);
+    font-variant-numeric: lining-nums tabular-nums;
+    letter-spacing: 0.02em;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+
+  .press-item__outlet {
+    grid-area: outlet;
+    min-inline-size: 0;
+  }
+
+  /* Logos en negro o a color: siempre en tinta, fundidos con el marfil. */
+  .press-item__outlet :global(.press-item__logo) {
+    inline-size: auto;
+    max-inline-size: 9rem;
+    block-size: 1.75rem;
+    object-fit: contain;
+    object-position: left center;
+    background: none;
+    filter: grayscale(1) contrast(1.1);
+    mix-blend-mode: multiply;
+    opacity: 0.85;
+    transition: opacity var(--duration-base) var(--ease-out);
+  }
+
+  .press-item__outlet-name {
+    font-size: var(--step--1);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+
+  .press-item__headline {
+    grid-area: headline;
+    max-inline-size: 26ch;
+    margin-block-start: var(--space-2xs);
+    font-size: var(--step-3);
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+
+  .press-item__link {
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.14em;
+    transition: text-decoration-color var(--duration-base) var(--ease-out);
+  }
+
+  /* Enlace estirado: toda la fila es el objetivo táctil. */
+  .press-item__link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .press-item__link:hover {
+    color: inherit;
+  }
+
+  .press-item__link:focus-visible {
+    outline: none;
+  }
+
+  .press-item__link:focus-visible::after {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 4px;
+  }
+
+  .press-item__action {
+    grid-area: action;
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-2xs);
+    font-size: var(--step--1);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  .press-item__badge {
+    padding: 0.1em 0.45em 0;
+    border: 1px solid currentColor;
+    font-size: 0.85em;
+    letter-spacing: 0.08em;
+  }
+
+  .press-item__arrow {
+    display: inline-block;
+    transition: transform var(--duration-base) var(--ease-out);
+  }
+
+  .press-item__inner:hover .press-item__link,
+  .press-item__inner:has(.press-item__link:focus-visible) .press-item__link {
+    text-decoration-color: currentColor;
+  }
+
+  .press-item__inner:hover .press-item__action {
+    color: var(--color-text);
+  }
+
+  .press-item__inner:hover .press-item__arrow {
+    transform: translate(0.2em, -0.2em);
+  }
+
+  .press-item__inner:hover :global(.press-item__logo) {
+    opacity: 1;
+  }
+
+  @media (min-width: 48em) {
+    .press-item__inner {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      grid-template-areas: none;
+      column-gap: var(--space-m);
+      align-items: baseline;
+      padding-block: var(--space-l);
+    }
+
+    .press-item__date {
+      grid-column: 1 / span 2;
+      grid-row: 1;
+    }
+
+    .press-item__outlet {
+      grid-column: 3 / span 2;
+      grid-row: 1;
+      align-self: center;
+    }
+
+    .press-item__headline {
+      grid-column: 5 / span 6;
+      grid-row: 1;
+      margin: 0;
+      font-size: var(--step-4);
+    }
+
+    .press-item__action {
+      grid-column: 11 / -1;
+      grid-row: 1;
+      justify-self: end;
+      text-align: end;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .press-item__inner:hover .press-item__arrow {
+      transform: none;
+    }
+  }
+
+  /* ---------- Sin entradas ---------- */
+  .press-empty {
+    display: grid;
+    gap: var(--space-s);
+    padding-block: var(--space-xl) var(--space-2xl);
+    border-block-start: var(--border-hairline);
+  }
+
+  .press-empty__text {
+    max-width: 22ch;
+    font-family: var(--font-display);
+    font-size: var(--step-3);
+    font-style: italic;
+    line-height: var(--leading-snug);
+  }
+
+  .press-empty__note {
+    color: var(--color-text-muted);
+  }
+
+  @media (min-width: 48em) {
+    .press-empty {
+      grid-template-columns: repeat(12, 1fr);
+      column-gap: var(--space-m);
+    }
+
+    .press-empty > * {
+      grid-column: 5 / span 7;
+    }
+  }
+</style>
