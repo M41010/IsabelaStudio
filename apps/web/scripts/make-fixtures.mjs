@@ -64,5 +64,24 @@ for (const img of IMAGES) {
     lqip: `data:image/jpeg;base64,${lqip.toString('base64')}`,
   };
 }
+
+// Logos de medios (prensa): PNG con fondo transparente y tinta negra, como los que se
+// suben al Studio. Sin LQIP (un logo no necesita placeholder). [nombre, ancho, alto, SVG]
+const LOGOS = [
+  [
+    'press-logo-volante',
+    640,
+    160,
+    `<text x="50%" y="62%" text-anchor="middle" font-family="Georgia, serif" font-size="96" letter-spacing="6" fill="#111">VOLANTE</text>
+     <text x="50%" y="92%" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" letter-spacing="10" fill="#111">REVISTA DE MODA</text>`,
+  ],
+];
+
+for (const [name, w, h, inner] of LOGOS) {
+  const buf = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">${inner}</svg>`);
+  await sharp(buf).png().toFile(new URL(`${name}.png`, OUT).pathname.replace(/^\/([A-Z]:)/, '$1'));
+  manifest[name] = { url: `/fixtures/${name}.png`, width: w, height: h, lqip: null };
+}
+
 await writeFile(MANIFEST, JSON.stringify(manifest, null, 2) + '\n');
-console.log(`${IMAGES.length} imágenes de prueba generadas.`);
+console.log(`${IMAGES.length} imágenes y ${LOGOS.length} logos de prueba generados.`);
